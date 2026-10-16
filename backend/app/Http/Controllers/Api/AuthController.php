@@ -50,13 +50,7 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $token = $request->bearerToken() ?: $request->header('X-API-TOKEN') ?: $request->query('api_token');
-        $user = User::where('api_token', $token)->first();
-
-        if (!$user) {
-            // Fallback to first user in demo mode
-            $user = User::first();
-        }
+        $user = $request->user();
 
         return response()->json([
             'success' => true,
@@ -71,6 +65,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $request->user()->forceFill(['api_token' => null])->save();
         return response()->json([
             'success' => true,
             'message' => 'Logout berhasil.',

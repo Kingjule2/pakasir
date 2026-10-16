@@ -47,7 +47,9 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Environment files
-.env
-.env.*
-!.env.example
+# React mobile build and local configuration
+/mobile/node_modules/
+/mobile/dist/
+/mobile/.env
+/mobile/.env.local
+/mobile/.env.*.local

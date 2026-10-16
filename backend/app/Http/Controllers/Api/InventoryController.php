@@ -56,7 +56,7 @@ class InventoryController extends Controller
             'stock_in' => 'required|integer|min:0',
         ]);
 
-        $product = Product::create([
+        $product = app(\App\Services\BillingService::class)->createProduct([
             'name' => $request->name,
             'sku' => $request->sku,
             'description' => $request->description ?? '',

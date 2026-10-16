@@ -45,46 +45,35 @@ class SupriAiController extends Controller
     public function chat(Request $request): JsonResponse
     {
         $request->validate([
-            'message' => 'required|string',
+            'message' => 'required|string|max:4000',
         ]);
 
         $text = trim($request->message);
-        $convo = AiConversation::first();
-        if (!$convo) {
-            $convo = AiConversation::create(['title' => 'Percakapan Supri AI']);
+        if (strlen($text) > 4000) {
+            return response()->json(['success' => false, 'message' => 'Pesan maksimal 4000 byte.'], 422);
         }
-
-        // 1. Save user message
-        AiMessage::create([
-            'conversation_id' => $convo->id,
-            'role' => 'user',
-            'content' => $text,
-        ]);
-
-        // 2. Fetch past conversation turns for context
-        $history = $convo->messages()
-            ->orderBy('id', 'desc')
-            ->take(6)
-            ->get()
-            ->reverse()
-            ->map(fn($m) => ['role' => $m->role, 'content' => $m->content])
-            ->values()
-            ->toArray();
-
-        // 3. Ask Supri AI via Gemini Service (integrated with Neural Memory & Realtime Sales Data)
-        $aiResult = $this->gemini->ask($text, $history);
-
-        // 4. Save assistant message
-        $botMsg = AiMessage::create([
-            'conversation_id' => $convo->id,
-            'role' => 'assistant',
-            'content' => $aiResult['content'],
-            'widget_type' => $aiResult['widget_type'],
-            'widget_data' => $aiResult['widget_data'],
-        ]);
-
-        // 5. Automatic Neural Memory Extraction & Learning from turn
-        $this->memoryEngine->extractFromConversation($text, $aiResult['content']);
+        $billing = app(\App\Services\BillingService::class);
+        $reservation = $billing->reservePrompt();
+        try {
+            $convo = AiConversation::firstOrCreate([], ['title' => 'Percakapan Supri AI']);
+            $history = $convo->messages()->orderByDesc('id')->take(6)->get()->reverse()
+                ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])->values()->toArray();
+            $aiResult = $this->gemini->ask($text, $history);
+            $botMsg = \Illuminate\Support\Facades\DB::transaction(function () use ($convo, $text, $aiResult, $billing, $request) {
+                AiMessage::create(['conversation_id' => $convo->id, 'role' => 'user', 'content' => $text]);
+                if ($billing->canManage($request->user())) {
+                    $this->memoryEngine->extractFromConversation($text, $aiResult['content']);
+                }
+                return AiMessage::create([
+                    'conversation_id' => $convo->id, 'role' => 'assistant',
+                    'content' => $aiResult['content'], 'widget_type' => $aiResult['widget_type'],
+                    'widget_data' => $aiResult['widget_data'],
+                ]);
+            });
+        } catch (\Throwable $e) {
+            $billing->releasePrompt($reservation);
+            throw $e;
+        }
 
         return response()->json([
             'success' => true,
@@ -111,10 +100,13 @@ class SupriAiController extends Controller
     public function trainMemory(Request $request): JsonResponse
     {
         $request->validate([
-            'content' => 'required|string',
-            'type' => 'nullable|string',
+            'content' => 'required|string|max:4000',
+            'type' => 'nullable|string|max:100',
             'importance' => 'nullable|integer|min:1|max:10',
         ]);
+        if (!app(\App\Services\BillingService::class)->canManage($request->user())) {
+            return response()->json(['success' => false, 'message' => 'Hanya pemilik toko dapat mengubah catatan AI.'], 403);
+        }
 
         $memory = $this->memoryEngine->record(
             $request->content,
@@ -126,17 +118,17 @@ class SupriAiController extends Controller
         );
 
         SecurityAuditLog::create([
-            'user' => 'Admin User',
-            'role' => 'Superadmin',
-            'action' => "Training Neural Memory Baru: [{$memory->memory_type}] {$memory->content}",
-            'target' => 'AI Brain / Memory Engine',
+            'user' => $request->user()->name,
+            'role' => $request->user()->role,
+            'action' => "Catatan konteks toko disimpan: [{$memory->memory_type}] {$memory->content}",
+            'target' => 'Catatan Supri AI',
             'ip_address' => $request->ip(),
             'status' => 'Sukses',
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengetahuan baru berhasil dilatih dan disimpan ke dalam Neural Memory Engine.',
+            'message' => 'Catatan toko tersimpan sebagai konteks AI, bukan pelatihan atau fine-tuning model.',
             'data' => $memory,
         ], 201);
     }
@@ -144,34 +136,16 @@ class SupriAiController extends Controller
     public function salesAnalysis(): JsonResponse
     {
         $salesContext = $this->gemini->gatherBusinessSalesContext();
-        $memoriesContext = $this->memoryEngine->buildContext('analisis tren penjualan dan saran pemasaran');
-
         $analysis = [
             'sales_summary' => $salesContext['financials'],
             'trends' => [
-                'peak_velocity_day' => 'Sabtu',
-                'peak_velocity_hours' => '14:00 - 18:00 WIB',
-                'fast_moving_category' => 'Fashion & Watch',
-                'growth_rate' => '+18.4% vs periode lalu',
+                'peak_velocity_day' => null,
+                'peak_velocity_hours' => null,
+                'fast_moving_category' => null,
+                'growth_rate' => null,
             ],
-            'marketing_recommendations' => [
-                [
-                    'channel' => 'TikTok & Instagram Reels',
-                    'strategy' => 'Video Unboxing & Water Resistance Test',
-                    'target_product' => 'Backpack Explorer 25L',
-                    'hook' => 'Jangan beli tas ransel kantor sebelum lihat ketahanan air tas ini!',
-                ],
-                [
-                    'channel' => 'WhatsApp VIP Broadcast',
-                    'strategy' => 'Private Pre-order Diskon 10%',
-                    'target_segment' => 'Member VIP (Budi Santoso, Siti Rahma)',
-                ],
-                [
-                    'channel' => 'In-Store POS SCBD & PVJ',
-                    'strategy' => 'Cross-selling Bundling Dompet Vintage + Tumbler Gratis',
-                    'objective' => 'Menaikkan Average Order Value (AOV)',
-                ],
-            ],
+            'marketing_recommendations' => [],
+            'message' => 'Ringkasan database lokal. Analisis generatif tersedia melalui chat dengan langganan aktif.',
         ];
 
         return response()->json([
@@ -182,35 +156,28 @@ class SupriAiController extends Controller
 
     public function executeRestock(Request $request): JsonResponse
     {
-        $products = Product::where('stock_in', '<', 30)->orWhere('is_out_of_stock', true)->get();
-
-        foreach ($products as $p) {
-            $p->stock_in = (int) round($p->total_qty * 0.85);
-            $p->is_out_of_stock = false;
-            $p->save();
-        }
-
-        $convo = AiConversation::first();
-        if ($convo) {
-            AiMessage::create([
-                'conversation_id' => $convo->id,
-                'role' => 'assistant',
-                'content' => 'Beres Bos! Semua order restock otomatis sebanyak **120 unit** telah dikirim ke supplier mitra. Estimasi barang sampai 2 hari ke depan.',
-            ]);
-        }
-
+        $request->validate(['items' => 'required|array|min:1|max:100', 'items.*.product_id' => 'required|integer|exists:products,id|distinct', 'items.*.qty' => 'required|integer|min:1|max:100000']);
+        $count = 0;
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, &$count) {
+            foreach ($request->input('items') as $item) {
+                $product = Product::lockForUpdate()->findOrFail($item['product_id']);
+                $product->stock_in += $item['qty'];
+                $product->is_out_of_stock = false;
+                $product->save();
+                $count += $item['qty'];
+            }
+        });
         SecurityAuditLog::create([
-            'user' => 'Supri AI Coworker',
-            'role' => 'AI System',
-            'action' => 'Restock Otomatis 120 Unit Berhasil Dikirim ke Supplier',
-            'target' => 'Inventory & Supplier Hub',
+            'user' => $request->user()->name,
+            'role' => $request->user()->role,
+            'action' => "Penerimaan stok manual {$count} unit; tidak mengirim pesanan supplier",
+            'target' => 'Inventory',
             'ip_address' => $request->ip(),
             'status' => 'Sukses',
         ]);
-
         return response()->json([
             'success' => true,
-            'message' => 'Restock 120 unit berhasil dieksekusi otomatis oleh Supri AI.',
+            'message' => "{$count} unit stok diterima dan dicatat. Tidak ada pesanan supplier yang dikirim.",
         ]);
     }
 }

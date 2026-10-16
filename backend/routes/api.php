@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\StoreOutletController;
 use App\Http\Controllers\Api\SupriAiController;
 use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\BillingController;
+use App\Http\Middleware\ApiTokenAuth;
 
 // Health Check
 Route::get('/health', function () {
@@ -24,10 +26,18 @@ Route::get('/health', function () {
 
 // 1. Authentication Routes
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::get('/me', [AuthController::class, 'me'])->middleware(ApiTokenAuth::class);
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware(ApiTokenAuth::class);
 });
+
+Route::get('/billing/plans', [BillingController::class, 'plans']);
+Route::post('/billing/webhook', [BillingController::class, 'webhook']);
+Route::middleware(ApiTokenAuth::class)->group(function () {
+    Route::get('/billing/subscription', [BillingController::class, 'subscription']);
+    Route::get('/billing/invoices', [BillingController::class, 'invoices']);
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1');
+    Route::get('/billing/invoices/{id}', [BillingController::class, 'refresh'])->middleware('throttle:20,1');
 
 // 2. Executive Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -102,4 +112,5 @@ Route::prefix('supri')->group(function () {
     Route::get('/memories', [SupriAiController::class, 'memories']);
     Route::post('/train-memory', [SupriAiController::class, 'trainMemory']);
     Route::get('/sales-analysis', [SupriAiController::class, 'salesAnalysis']);
+});
 });

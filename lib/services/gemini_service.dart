@@ -7,7 +7,7 @@ import 'memory_engine.dart';
 
 class GeminiService {
   static const String apiKey =
-      String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+      String.fromEnvironment('GEMINI_API_KEY');
   static const String model = 'gemini-3.1-flash-lite';
 
   /// Send prompt to Gemini API with full conversational freedom and memory context
@@ -19,10 +19,6 @@ class GeminiService {
     String? attachedImageBase64,
     String? attachedFileName,
   }) async {
-    if (apiKey.isEmpty) {
-      return MemoryEngine.answerUserQuery(prompt, items, finance);
-    }
-
     final criticalItems = MemoryEngine.evaluateRestockPriorities(items);
     final fastMoving = items.where((i) => i.tag == 'Fast Moving').toList();
 

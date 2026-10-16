@@ -729,22 +729,6 @@ class InventoryStore extends ChangeNotifier {
       notifyListeners();
     }
   }
-  List<String> markAllShipmentsReceived() {
-    final receivedNames = <String>[];
-    for (final received in List<ShipmentItem>.from(_shipments)) {
-      receivedNames.add(received.productName);
-      final itemIndex = _items.indexWhere((i) => i.name.toLowerCase() == received.productName.toLowerCase());
-      if (itemIndex != -1) {
-        _items[itemIndex] = _items[itemIndex].copyWith(
-          stockIn: _items[itemIndex].stockIn + 50,
-          isOutOfStock: false,
-        );
-      }
-    }
-    _shipments.clear();
-    notifyListeners();
-    return receivedNames;
-  }
 
   // Actions
   void addProduct(InventoryItem item) {
@@ -869,37 +853,6 @@ class InventoryStore extends ChangeNotifier {
         imageAsset: 'backpack',
       ),
     ]);
-    _shipments.clear();
-    _shipments.addAll([
-      ShipmentItem(
-        id: 'ship-1',
-        productName: 'Backpack',
-        sku: '#Sku-305',
-        delayedDays: 5,
-        supplier: 'PT Tas Nusantara',
-      ),
-      ShipmentItem(
-        id: 'ship-2',
-        productName: 'T Shirts',
-        sku: '#Sku-305',
-        delayedDays: 5,
-        supplier: 'CV Solo Textile',
-      ),
-      ShipmentItem(
-        id: 'ship-3',
-        productName: 'Helmets',
-        sku: '#Sku-305',
-        delayedDays: 3,
-        supplier: 'Surya Helmet Indah',
-      ),
-      ShipmentItem(
-        id: 'ship-4',
-        productName: 'Sunglass',
-        sku: '#Sku-305',
-        delayedDays: 3,
-        supplier: 'Kacamata Raya',
-      ),
-    ]);
     notifyListeners();
   }
 
@@ -966,92 +919,6 @@ class InventoryStore extends ChangeNotifier {
       );
       _chatMessages.add(restoreMsg);
       notifyListeners();
-      return;
-    }
-    // 3. Direct AI Execution: Mark Shipment Received ("Barang Sampai")
-    final isShipmentIntent = (lower.contains('shipmen') ||
-            lower.contains('shipment') ||
-            lower.contains('pengiriman') ||
-            lower.contains('kiriman') ||
-            lower.contains('supplier') ||
-            lower.contains('barang')) &&
-        (lower.contains('sampai') ||
-            lower.contains('sampe') ||
-            lower.contains('tiba') ||
-            lower.contains('diterima') ||
-            lower.contains('terima') ||
-            lower.contains('acc') ||
-            lower.contains('pencet') ||
-            lower.contains('masuk'));
-
-    if (isShipmentIntent) {
-      if (_shipments.isEmpty) {
-        final alreadyEmptyMsg = AiChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          role: MessageRole.assistant,
-          text:
-              'Halo Bos! Semua pengiriman supplier saat ini sudah berstatus **"Delivered/Diterima"** dan tidak ada antrean barang tertunda di menu Shipment 👍',
-          timestamp: DateTime.now(),
-        );
-        _chatMessages.add(alreadyEmptyMsg);
-        notifyListeners();
-        return;
-      }
-
-      // Check if specific shipment item is mentioned
-      final matchingShipment = _shipments.firstWhere(
-        (s) => lower.contains(s.productName.toLowerCase()),
-        orElse: () => ShipmentItem(id: '', productName: '', sku: '', delayedDays: 0, supplier: ''),
-      );
-
-      final isAll = lower.contains('semua') ||
-          lower.contains('all') ||
-          matchingShipment.id.isEmpty;
-
-      if (isAll) {
-        final count = _shipments.length;
-        final names = markAllShipmentsReceived();
-        final namesStr = names.join(', ');
-
-        final confirmMsg = AiChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          role: MessageRole.assistant,
-          text:
-              'Siap, Bos! Perintah langsung dieksekusi ke sistem:\n\n'
-              '✅ Tombol **"Barang Sampai"** untuk seluruh **$count pengiriman** ($namesStr) telah berhasil di-acc dan diterima di sistem.\n'
-              '📦 Stok masing-masing barang di gudang otomatis bertambah **+50 unit**.\n'
-              '📊 Status pada pelacakan pengiriman (Shipment Tracking) sekarang sudah bersih 100% dan dashboard telah sinkron real-time!',
-          timestamp: DateTime.now(),
-        );
-        _chatMessages.add(confirmMsg);
-        notifyListeners();
-        return;
-      } else {
-        final pName = matchingShipment.productName;
-        markShipmentReceived(matchingShipment.id);
-
-        final confirmMsg = AiChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          role: MessageRole.assistant,
-          text:
-              'Siap, Bos! Pengiriman untuk **$pName** telah saya acc via tombol **"Barang Sampai"**.\n\n'
-              'Stok $pName di gudang sudah otomatis ditambahkan **+50 unit** dan status pengirimannya sudah diselesaikan.',
-          timestamp: DateTime.now(),
-        );
-        _chatMessages.add(confirmMsg);
-        notifyListeners();
-        return;
-      }
-    }
-
-    // 4. Direct AI Execution: Execute Restock
-    if ((lower.contains('restock') || lower.contains('kulakan')) &&
-        (lower.contains('eksekusi') ||
-            lower.contains('sekarang') ||
-            lower.contains('langsung') ||
-            lower.contains('semua') ||
-            lower.contains('otomatis'))) {
-      executeAllRecommendedRestock();
       return;
     }
 

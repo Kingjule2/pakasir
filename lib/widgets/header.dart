@@ -25,17 +25,8 @@ class AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      decoration: const BoxDecoration(
-        color: AppColors.scaffoldBg,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.divider,
-            width: 1,
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      color: Colors.transparent,
       child: Row(
         children: [
           // Page Title

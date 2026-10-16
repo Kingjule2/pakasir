@@ -177,20 +177,6 @@ void main() {
       expect(store.chatMessages.last.text.contains('berhasil dipulihkan'), isTrue);
     });
 
-    test('AI autonomously executes shipment receipt (Barang Sampai) when commanded by user', () async {
-      final store = InventoryStore();
-      expect(store.shipments.length, equals(4));
-
-      // Execute exact user prompt from image:
-      // "pri pada bagian shipmen semua barang sudah sampe tolong pencetin"
-      await store.sendMessageToSupri('pri pada bagian shipmen semua barang sudah sampe tolong pencetin');
-
-      // Shipments must now be cleared (all received / acc)
-      expect(store.shipments.isEmpty, isTrue);
-      expect(store.chatMessages.last.text.contains('Barang Sampai'), isTrue);
-      expect(store.chatMessages.last.text.contains('+50 unit'), isTrue);
-    });
-
     test('AI chat message supports image and file attachments', () async {
       final store = InventoryStore();
       await store.sendMessageToSupri(

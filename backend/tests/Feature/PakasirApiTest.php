@@ -15,6 +15,11 @@ class PakasirApiTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
+        $this->withHeader('Authorization', 'Bearer vault-demo-token-12345');
+        \Illuminate\Support\Facades\DB::table('store_subscriptions')->where('id', 1)->update([
+            'plan' => 'pro', 'status' => 'active', 'starts_at' => now(), 'ends_at' => now()->addMonthNoOverflow(), 'prompt_limit' => 2000,
+        ]);
+        config(['services.gemini.key' => '']);
     }
 
     public function test_api_health_check_returns_ok(): void
@@ -100,13 +105,6 @@ class PakasirApiTest extends TestCase
             ->assertJsonPath('success', true);
     }
 
-    public function test_reports_returns_financial_breakdown(): void
-    {
-        $response = $this->getJson('/api/reports?period=Bulan+Ini');
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.summary.total_revenue', 284500000);
-    }
 
     public function test_help_faqs_and_ticket_submission(): void
     {
@@ -152,11 +150,11 @@ class PakasirApiTest extends TestCase
             'message' => 'Berapa laba bersih minggu ini?',
         ]);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.widget_type', 'financeSummary');
+        $response->assertStatus(503)->assertJsonPath('success', false);
 
-        $restockResponse = $this->postJson('/api/supri/restock-now');
+        $restockResponse = $this->postJson('/api/supri/restock-now', [
+            'items' => [['product_id' => Product::first()->id, 'qty' => 10]],
+        ]);
         $restockResponse->assertStatus(200)
             ->assertJsonPath('success', true);
     }
@@ -217,24 +215,12 @@ class PakasirApiTest extends TestCase
             ]);
     }
 
-    public function test_natural_human_conversation_responses(): void
+    public function test_ai_without_provider_does_not_fabricate_conversation(): void
     {
-        // 1. Natural thanks ("ok makasi supro")
-        $thanks = $this->postJson('/api/supri/chat', [
-            'message' => 'ok makasi supro',
-        ]);
-        $thanks->assertStatus(200);
-        $content1 = strtolower($thanks->json('data.content'));
-        $this->assertTrue(str_contains($content1, 'sama-sama') || str_contains($content1, 'santai') || str_contains($content1, 'seneng'));
-        $this->assertFalse(str_contains($content1, 'bos bisa tanya:'));
-
-        // 2. CSV report request ("pri bisa ga bikinin laporan dalam bentuk csv")
-        $csvReq = $this->postJson('/api/supri/chat', [
-            'message' => 'pri bisa ga bikinin laporan dalam bentuk csv',
-        ]);
-        $csvReq->assertStatus(200);
-        $content2 = strtolower($csvReq->json('data.content'));
-        $this->assertTrue(str_contains($content2, 'report') || str_contains($content2, 'csv'));
-        $this->assertFalse(str_contains($content2, 'bos bisa tanya:'));
+        $before = \App\Models\AiMessage::count();
+        $this->postJson('/api/supri/chat', ['message' => 'ok makasi supro'])
+            ->assertStatus(503)->assertJsonPath('success', false);
+        $this->assertSame($before, \App\Models\AiMessage::count());
+        $this->assertSame(0, (int) \Illuminate\Support\Facades\DB::table('subscription_usages')->sum('prompts_used'));
     }
 }

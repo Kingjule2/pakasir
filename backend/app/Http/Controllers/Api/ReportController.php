@@ -3,84 +3,92 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SalesAnalytic;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    private function transactions(Request $request)
     {
-        $period = $request->query('period', 'Bulan Ini');
+        $request->validate(['period' => ['nullable', Rule::in(['Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Tahun Ini'])]]);
+        $start = match ($request->query('period', 'Bulan Ini')) {
+            'Hari Ini' => now()->startOfDay(),
+            'Minggu Ini' => now()->startOfWeek(),
+            'Tahun Ini' => now()->startOfYear(),
+            default => now()->startOfMonth(),
+        };
 
-        // Financial Overview
-        $totalRevenue = 284500000.0;
-        $totalHpp = 168000000.0;
-        $grossProfit = $totalRevenue - $totalHpp;
-        $operationalCost = 38500000.0;
-        $netProfit = $grossProfit - $operationalCost;
-        $cashInHand = 94200000.0;
-
-        // P&L Detailed Items
-        $pnl = [
-            'gross_revenue' => $totalRevenue,
-            'cogs_hpp' => -$totalHpp,
-            'gross_profit' => $grossProfit,
-            'expenses' => [
-                ['name' => 'Beban Gaji Karyawan', 'amount' => -22000000.0],
-                ['name' => 'Sewa Tempat & Utilitas', 'amount' => -11500000.0],
-                ['name' => 'Beban Pemasaran & Promo', 'amount' => -5000000.0],
-            ],
-            'total_expenses' => -$operationalCost,
-            'net_profit' => $netProfit,
-            'profit_margin' => round(($netProfit / $totalRevenue) * 100, 1),
-        ];
-
-        // Fund Allocation
-        $allocations = [
-            ['label' => 'Anggaran Kulakan Stok', 'amount' => 50000000.0, 'percentage' => 0.53],
-            ['label' => 'Operasional Toko & Shift', 'amount' => 25000000.0, 'percentage' => 0.27],
-            ['label' => 'Dana Cadangan Darurat', 'amount' => 15000000.0, 'percentage' => 0.16],
-            ['label' => 'Prive / Bagi Hasil', 'amount' => 4200000.0, 'percentage' => 0.04],
-        ];
-
-        // Payment Methods breakdown
-        $paymentMethods = [
-            ['method' => 'QRIS (GoPay, OVO, ShopeePay, Dana)', 'share' => '45%', 'value' => 0.45],
-            ['method' => 'Mesin EDC (BCA, Mandiri, BRI)', 'share' => '25%', 'value' => 0.25],
-            ['method' => 'Tunai / Cash', 'share' => '18%', 'value' => 0.18],
-            ['method' => 'Transfer Virtual Account', 'share' => '12%', 'value' => 0.12],
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'period' => $period,
-                'summary' => [
-                    'total_revenue' => $totalRevenue,
-                    'total_hpp' => $totalHpp,
-                    'gross_profit' => $grossProfit,
-                    'operational_cost' => $operationalCost,
-                    'net_profit' => $netProfit,
-                    'cash_in_hand' => $cashInHand,
-                ],
-                'profit_and_loss' => $pnl,
-                'fund_allocations' => $allocations,
-                'payment_methods' => $paymentMethods,
-            ],
-        ]);
+        return Transaction::where('payment_status', 'paid')
+            ->whereBetween('transaction_date', [$start, now()]);
     }
 
-    public function export(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $type = $request->query('type', 'csv'); // csv or pdf
-        $period = $request->query('period', 'Bulan Ini');
+        $transactions = $this->transactions($request)->with('items')->get();
+        // Tax collected is not revenue; item costs are historical checkout snapshots.
+        $revenue = (float) $transactions->sum(fn ($row) => $row->subtotal - $row->discount + $row->service_fee);
+        $hpp = (float) $transactions->sum(fn ($row) => $row->items->sum(fn ($item) => $item->cost_price * $item->quantity));
+        $grossProfit = $revenue - $hpp;
+        $payments = (float) $transactions->sum('total_amount');
+        $methods = $transactions->groupBy('payment_method')->map(function ($rows, $method) use ($payments) {
+            $amount = (float) $rows->sum('total_amount');
+            $share = $payments > 0 ? $amount / $payments : 0;
+            return ['method' => $method, 'amount' => $amount, 'value' => $share, 'share' => round($share * 100, 1) . '%'];
+        })->values();
 
-        return response()->json([
-            'success' => true,
-            'message' => "Laporan finansial ({$period}) berhasil diexport ke format " . strtoupper($type),
-            'download_url' => url("/api/reports/download?token=vault-" . time()),
-        ]);
+        return response()->json(['success' => true, 'data' => [
+            'period' => $request->query('period', 'Bulan Ini'),
+            'source' => 'Transaksi POS berstatus paid; pajak tidak termasuk pendapatan.',
+            'note' => 'Biaya operasional, saldo kas, dan laba bersih belum dicatat. Laba kotor bukan laba bersih.',
+            'transaction_count' => $transactions->count(),
+            'summary' => [
+                'total_revenue' => $revenue,
+                'total_hpp' => $hpp,
+                'gross_profit' => $grossProfit,
+                'operational_cost' => null,
+                'net_profit' => null,
+                'cash_in_hand' => null,
+                'payments_received' => $payments,
+                'tax_collected' => (float) $transactions->sum('tax_amount'),
+            ],
+            'profit_and_loss' => [
+                'gross_revenue' => $revenue,
+                'cogs_hpp' => -$hpp,
+                'gross_profit' => $grossProfit,
+                'expenses' => [],
+                'total_expenses' => null,
+                'net_profit' => null,
+                'profit_margin' => null,
+                'gross_margin' => $revenue != 0 ? round($grossProfit / $revenue * 100, 1) : 0,
+            ],
+            'fund_allocations' => [],
+            'payment_methods' => $methods,
+        ]]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $request->validate(['type' => ['nullable', Rule::in(['csv'])]]);
+        $query = $this->transactions($request)->with('items')->orderBy('id');
+
+        return response()->streamDownload(function () use ($query) {
+            $file = fopen('php://output', 'w');
+            fwrite($file, "\xEF\xBB\xBF");
+            fputcsv($file, ['Invoice', 'Tanggal', 'Metode', 'Pendapatan tanpa pajak', 'HPP', 'Laba kotor', 'Pajak', 'Total pembayaran'], ',', '"', '');
+            foreach ($query->lazyById(250) as $transaction) {
+                $revenue = $transaction->subtotal - $transaction->discount + $transaction->service_fee;
+                $hpp = $transaction->items->sum(fn ($item) => $item->cost_price * $item->quantity);
+                $safe = static fn ($value) => preg_match('/^[=+@\-\t\r]/', $value) ? "'" . $value : $value;
+                fputcsv($file, [
+                    $safe($transaction->invoice_number), $transaction->transaction_date->toIso8601String(),
+                    $safe($transaction->payment_method), $revenue, $hpp, $revenue - $hpp,
+                    $transaction->tax_amount, $transaction->total_amount,
+                ], ',', '"', '');
+            }
+            fclose($file);
+        }, 'pakasir-laporan-' . now()->format('Ymd-His') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }
