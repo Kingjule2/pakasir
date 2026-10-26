@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('image_asset')->default('default');
             $table->boolean('is_out_of_stock')->default(false);
             $table->boolean('is_active')->default(true);
+            $table->timestamp('deleted_at')->nullable();
+            $table->timestamp('delete_after')->nullable();
+            $table->string('deleted_reason')->nullable();
             $table->timestamps();
         });
     }

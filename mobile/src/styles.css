@@ -20,3 +20,91 @@
   .sidebar { visibility: hidden; }
   .sidebar.is-open { visibility: visible; }
 }
+:root {
+  --primary-navy: #0F0F4A;
+  --primary-navy-hover: #171764;
+  --accent-sky-blue: #B9D9FA;
+  --table-header-bg: #E8EEFB;
+  --chart-line: #4A7FB0;
+  --chart-area-fill: #EAF0FB;
+  --app-bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-alt: #F7F7F8;
+  --border-subtle: #E5E7EB;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+}
+.badge.success { background: #DDF5E5; color: #1E9E4F; border-color: #DDF5E5; }
+.badge.danger { background: #FDE3E3; color: #D83A3A; border-color: #FDE3E3; }
+.badge.warning { background: #D6E8FB; color: #2D6FB5; border-color: #D6E8FB; }
+.thermal-preview {
+  background: #FAFAFA;
+  border: 1px dashed #9CA3AF;
+  border-radius: 10px;
+  padding: 16px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre;
+  color: #111827;
+  margin: 0 0 16px;
+}
+.scanner-viewfinder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 18px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: #181B1E;
+  color: #FFFFFF;
+  border: 2px dashed var(--lime);
+  text-align: center;
+}
+.scanner-viewfinder svg { color: var(--lime); }
+.scanner-viewfinder small { color: #9CA3AF; font-size: 11px; }
+.qris-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: #E8EEFB;
+  border: 1px solid #B9D9FA;
+  color: #0F0F4A;
+}
+.floating-supri-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 84px;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1px solid #2c3136;
+  background: #181B1E;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(15, 15, 74, 0.22);
+}
+.floating-supri-fab svg { color: var(--lime); }
+.pos-center-tab .pos-fab-circle {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: #111827;
+  margin-top: -14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}

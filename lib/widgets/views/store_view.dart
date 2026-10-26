@@ -25,7 +25,7 @@ class StoreView extends StatelessWidget {
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -88,8 +88,11 @@ class StoreView extends StatelessWidget {
           const SizedBox(height: 20),
 
           // 2. Toolbar & Section Title
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +100,7 @@ class StoreView extends StatelessWidget {
                   Text(
                     'Daftar Cabang & Outlet Toko',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                       letterSpacing: -0.3,
@@ -105,9 +108,9 @@ class StoreView extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Kelola jam operasional, buka/tutup cabang, dan performa kasir',
+                    'Kelola jam operasional, buka/tutup cabang, dan kasir',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: AppColors.textMuted,
                     ),
                   ),
@@ -115,22 +118,22 @@ class StoreView extends StatelessWidget {
               ),
               ElevatedButton.icon(
                 onPressed: () => _showAddStoreDialog(context),
-                icon: const Icon(Icons.add_business_rounded, size: 15),
+                icon: const Icon(Icons.add_business_rounded, size: 14),
                 label: const Text('Tambah Cabang'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cardDark,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 11,
+                    horizontal: 12,
+                    vertical: 9,
                   ),
                   textStyle: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
@@ -171,10 +174,10 @@ class StoreView extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
@@ -187,7 +190,7 @@ class StoreView extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textSecondary,
                   ),
@@ -195,33 +198,39 @@ class StoreView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Container(
-                width: 32,
-                height: 32,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(icon, size: 17, color: color),
+                child: Icon(icon, size: 14, color: color),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.4,
+              ),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               color: AppColors.textMuted,
             ),
           ),
@@ -354,51 +363,61 @@ class StoreView extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Detail Info: Manager & Operating Hours
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const Icon(Icons.person_outline_rounded, size: 15, color: AppColors.textMuted),
-                    const SizedBox(width: 6),
-                    Text(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.person_outline_rounded, size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
                       'Manager: ${outlet.manager}',
-                      style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.access_time_rounded, size: 15, color: AppColors.textMuted),
-                  const SizedBox(width: 6),
-                  Text(
-                    outlet.operatingHours,
-                    style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      outlet.operatingHours,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // 4 Metric Badges: Daily Sales, Monthly Sales, Terminals, Staff
           Container(
-            padding: const EdgeInsets.all(12),
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            child: Wrap(
+              spacing: 14,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceAround,
               children: [
                 _buildOutletStat('Omset Harian', 'Rp ${_formatRupiah(outlet.dailySales)}'),
-                Container(width: 1, height: 28, color: AppColors.divider),
                 _buildOutletStat('Omset Bulanan', 'Rp ${_formatRupiah(outlet.monthlySales)}'),
-                Container(width: 1, height: 28, color: AppColors.divider),
                 _buildOutletStat('Mesin POS', '${outlet.terminalsCount} Terminal'),
-                Container(width: 1, height: 28, color: AppColors.divider),
                 _buildOutletStat('Staff Aktif', '${outlet.staffCount} Orang'),
               ],
             ),

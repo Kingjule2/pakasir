@@ -18,7 +18,7 @@ class ShipmentView extends StatelessWidget {
     final shipments = store.shipments;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -72,17 +72,20 @@ class ShipmentView extends StatelessWidget {
 
           // Main Shipments Card
           Container(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.cardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,15 +93,15 @@ class ShipmentView extends StatelessWidget {
                         Text(
                           'Pelacakan Pengiriman Supplier (Shipment Tracking)',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Pantau status kiriman barang dari pabrik dan supplier masuk ke gudang',
-                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          'Pantau status kiriman barang dari pabrik masuk ke gudang',
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ),
@@ -111,14 +114,14 @@ class ShipmentView extends StatelessWidget {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 15),
+                      icon: const Icon(Icons.add_shopping_cart_rounded, size: 14),
                       label: const Text('Buat Order Pengiriman'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.cardDark,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
@@ -157,64 +160,73 @@ class ShipmentView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.cardBorder),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: AppColors.statusDangerBg,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.local_shipping_outlined,
-                                color: AppColors.statusDanger,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.statusDangerBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_shipping_outlined,
+                                    color: AppColors.statusDanger,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        ship.productName,
-                                        style: const TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.statusDangerBg,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          'Terlambat ${ship.delayedDays} Hari',
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.statusDanger,
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(
+                                            ship.productName,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.textPrimary,
+                                            ),
                                           ),
-                                        ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.statusDangerBg,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'Terlambat ${ship.delayedDays} Hari',
+                                              style: const TextStyle(
+                                                fontSize: 9.5,
+                                                fontWeight: FontWeight.w800,
+                                                color: AppColors.statusDanger,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'SKU: ${ship.sku} • Supplier: ${ship.supplier}',
+                                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    'SKU: ${ship.sku} • Supplier: ${ship.supplier}',
-                                    style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 10),
                             Wrap(
                               spacing: 8,
+                              runSpacing: 6,
                               children: [
                                 OutlinedButton.icon(
                                   onPressed: () => onContactSupplier(context, ship),
@@ -223,7 +235,7 @@ class ShipmentView extends StatelessWidget {
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.cardDark,
                                     side: const BorderSide(color: AppColors.cardBorder),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                                     textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                                   ),
                                 ),
@@ -242,7 +254,7 @@ class ShipmentView extends StatelessWidget {
                                     backgroundColor: AppColors.cardDark,
                                     foregroundColor: Colors.white,
                                     elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                                     textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                                   ),
                                 ),
@@ -281,18 +293,23 @@ class ShipmentView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                ),
               ),
+              const SizedBox(width: 6),
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, size: 17, color: color),
+                child: Icon(icon, size: 15, color: color),
               ),
             ],
           ),

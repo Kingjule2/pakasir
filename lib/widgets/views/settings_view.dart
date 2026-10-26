@@ -104,13 +104,16 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Toolbar Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +121,7 @@ class _SettingsViewState extends State<SettingsView> {
                   Text(
                     'Pengaturan Sistem & Toko',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                       letterSpacing: -0.3,
@@ -126,9 +129,9 @@ class _SettingsViewState extends State<SettingsView> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Profil usaha, tarif PPN 11%, printer POS kasir, dan notifikasi stok',
+                    'Profil usaha, PPN 11%, printer POS kasir, dan notifikasi stok',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: AppColors.textMuted,
                     ),
                   ),
@@ -136,15 +139,15 @@ class _SettingsViewState extends State<SettingsView> {
               ),
               ElevatedButton.icon(
                 onPressed: _saveAllSettings,
-                icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
+                icon: const Icon(Icons.check_circle_outline_rounded, size: 14),
                 label: const Text('Simpan Perubahan'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.cardDark,
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -293,57 +296,50 @@ class _SettingsViewState extends State<SettingsView> {
             title: 'Perangkat Keras & Printer Kasir',
             icon: Icons.print_rounded,
             children: [
-              Row(
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _printerName,
+                decoration: const InputDecoration(
+                  labelText: 'Model Printer Thermal Terpasang',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  'Epson TM-T82X (Thermal)',
+                  'Panda POS Thermal 80mm (Bluetooth)',
+                  'Iware Portable 58mm (Bluetooth)',
+                  'Star Micronics TSP143III (LAN)',
+                ].map((p) => DropdownMenuItem(value: p, child: Text(p, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _printerName = val);
+                },
+              ),
+              const SizedBox(height: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _printerName,
-                      decoration: const InputDecoration(
-                        labelText: 'Model Printer Thermal Terpasang',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: [
-                        'Epson TM-T82X (Thermal)',
-                        'Panda POS Thermal 80mm (Bluetooth)',
-                        'Iware Portable 58mm (Bluetooth)',
-                        'Star Micronics TSP143III (LAN)',
-                      ].map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 12)))).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _printerName = val);
-                      },
-                    ),
+                  const Text(
+                    'Lebar Kertas',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
-                  const SizedBox(width: 14),
-                  // Paper Width Selector
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Lebar Kertas',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: ['80mm', '58mm'].map((width) {
-                          final isSelected = _paperWidth == width;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(width),
-                              selected: isSelected,
-                              onSelected: (_) => setState(() => _paperWidth = width),
-                              selectedColor: AppColors.cardDark,
-                              labelStyle: TextStyle(
-                                fontSize: 11,
-                                color: isSelected ? Colors.white : AppColors.textPrimary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: ['80mm', '58mm'].map((width) {
+                      final isSelected = _paperWidth == width;
+                      return ChoiceChip(
+                        label: Text(width),
+                        selected: isSelected,
+                        onSelected: (_) => setState(() => _paperWidth = width),
+                        selectedColor: AppColors.cardDark,
+                        labelStyle: TextStyle(
+                          fontSize: 11,
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
@@ -388,27 +384,27 @@ class _SettingsViewState extends State<SettingsView> {
             title: 'Notifikasi & Batas Peringatan Stok',
             icon: Icons.notifications_active_rounded,
             children: [
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   SizedBox(
-                    width: 180,
+                    width: 170,
                     child: TextField(
                       controller: _thresholdCtrl,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Ambang Stok Kritis (Unit)',
+                        labelText: 'Ambang Stok Kritis',
                         suffixText: 'Unit',
                         border: OutlineInputBorder(),
                         isDense: true,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      'AI Memory Engine akan otomatis memunculkan rekomendasi restock jika stok di bawah ambang batas ini.',
-                      style: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
-                    ),
+                  const Text(
+                    'AI Memory Engine akan otomatis memunculkan rekomendasi restock jika stok di bawah ambang batas ini.',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -459,36 +455,40 @@ class _SettingsViewState extends State<SettingsView> {
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.cardBorder),
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.brandLime.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandLime.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 16, color: AppColors.cardDark),
                 ),
-                child: Icon(icon, size: 17, color: AppColors.cardDark),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           const SizedBox(height: 16),
           ...children,
         ],

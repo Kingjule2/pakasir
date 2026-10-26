@@ -13,6 +13,9 @@ class InventoryItem {
   final String tag;
   final String imageAsset;
   final bool isOutOfStock;
+  final DateTime? deletedAt;
+  final DateTime? deleteAfter;
+  final String? deletedReason;
 
   InventoryItem({
     required this.id,
@@ -27,7 +30,16 @@ class InventoryItem {
     required this.tag,
     this.imageAsset = 'default',
     this.isOutOfStock = false,
+    this.deletedAt,
+    this.deleteAfter,
+    this.deletedReason,
   });
+
+  int get daysRemaining {
+    if (deleteAfter == null) return 30;
+    final diff = deleteAfter!.difference(DateTime.now()).inDays;
+    return diff < 0 ? 0 : diff;
+  }
 
   InventoryItem copyWith({
     String? id,
@@ -42,6 +54,10 @@ class InventoryItem {
     String? tag,
     String? imageAsset,
     bool? isOutOfStock,
+    DateTime? deletedAt,
+    DateTime? deleteAfter,
+    String? deletedReason,
+    bool clearDeleted = false,
   }) {
     return InventoryItem(
       id: id ?? this.id,
@@ -56,6 +72,9 @@ class InventoryItem {
       tag: tag ?? this.tag,
       imageAsset: imageAsset ?? this.imageAsset,
       isOutOfStock: isOutOfStock ?? this.isOutOfStock,
+      deletedAt: clearDeleted ? null : (deletedAt ?? this.deletedAt),
+      deleteAfter: clearDeleted ? null : (deleteAfter ?? this.deleteAfter),
+      deletedReason: clearDeleted ? null : (deletedReason ?? this.deletedReason),
     );
   }
 }

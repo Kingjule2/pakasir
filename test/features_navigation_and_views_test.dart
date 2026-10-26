@@ -44,10 +44,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Customers on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Customers
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Customers').first);
       await tester.pumpAndSettle();
-
       // Verify Customers page
       expect(find.text('Direktori Pelanggan & CRM'), findsOneWidget);
       expect(find.text('Total Pelanggan'), findsOneWidget);
@@ -72,10 +73,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Store on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Store
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Store').first);
       await tester.pumpAndSettle();
-
       // Verify Store page
       expect(find.text('Daftar Cabang & Outlet Toko'), findsOneWidget);
       expect(find.text('Status Operasional'), findsOneWidget);
@@ -96,10 +98,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Report on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Report
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Report').first);
       await tester.pumpAndSettle();
-
       // Verify Report page
       expect(find.text('Laporan Keuangan & Analitik Penjualan'), findsOneWidget);
       expect(find.text('Laporan Laba Rugi (P&L)'), findsOneWidget);
@@ -120,10 +123,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Help on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Help
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Help').first);
       await tester.pumpAndSettle();
-
       // Verify Help page
       expect(find.text('Pusat Bantuan & Dukungan Teknis Vault'), findsOneWidget);
       expect(find.text('Pertanyaan Umum (FAQ)'), findsOneWidget);
@@ -143,10 +147,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Settings on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Settings
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Settings').first);
       await tester.pumpAndSettle();
-
       // Verify Settings page
       expect(find.text('Pengaturan Sistem & Toko'), findsWidgets);
       expect(find.text('Profil Bisnis & Perusahaan'), findsOneWidget);
@@ -168,10 +173,11 @@ void main() {
       await tester.pumpWidget(const VaultSaaSApp());
       await tester.pumpAndSettle();
 
-      // Tap Privacy on Sidebar
+      // Open More sheet on Stitch Bottom Nav and tap Privacy
+      await tester.tap(find.text('More').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Privacy').first);
       await tester.pumpAndSettle();
-
       // Verify Privacy page
       expect(find.text('Pusat Privasi, Keamanan & Hak Akses (RBAC)'), findsOneWidget);
       expect(find.text('Peran Pengguna & Pembagian Wewenang (RBAC)'), findsOneWidget);
@@ -214,6 +220,112 @@ void main() {
       expect(store.settings.taxRate, equals(11.0));
       store.updateSettings(store.settings.copyWith(taxRate: 12.0));
       expect(store.settings.taxRate, equals(12.0));
+    });
+
+    test('Mobile Blueprint: Soft Delete, Recently Deleted, POS Checkout, Offline Queue, ESC/POS & Voice State Machine', () {
+      final store = InventoryStore();
+      final initialCount = store.allItems.length;
+      final firstItem = store.allItems.first;
+
+      // 1. Soft Delete -> Recently Deleted -> Restore
+      store.softDeleteProduct(firstItem.id, reason: 'Discontinued', holdDays: 14);
+      expect(store.allItems.length, equals(initialCount - 1));
+      expect(store.recentlyDeletedItems.length, equals(1));
+      expect(store.recentlyDeletedItems.first.deletedReason, equals('Discontinued'));
+      expect(store.recentlyDeletedItems.first.daysRemaining, greaterThanOrEqualTo(13));
+
+      store.restoreProduct(firstItem.id);
+      expect(store.allItems.length, equals(initialCount));
+      expect(store.recentlyDeletedItems.isEmpty, isTrue);
+
+      // 2. POS Cart & Offline-First Checkout + Sync
+      store.setOfflineMode(true);
+      store.addToCart(firstItem);
+      store.updateCartQuantity(firstItem.id, 2);
+      final receipt = store.checkoutPosTransaction(
+        paymentMethod: 'QRIS',
+        customerName: 'Budi Santoso',
+      );
+      expect(receipt, isNotNull);
+      expect(receipt!['sync_status'], equals('pending'));
+      expect(store.offlineQueue.length, equals(1));
+
+      // Format ESC/POS 58mm thermal receipt
+      final escPos = store.formatEscPosReceipt(receipt, paperWidth: '58mm');
+      expect(escPos.contains('PAKASIR VAULT'), isTrue);
+      expect(escPos.contains(firstItem.name), isTrue);
+
+      // Reconnect & sync offline queue
+      store.setOfflineMode(false);
+      expect(store.offlineQueue.isEmpty, isTrue);
+      expect(store.transactions.first['sync_status'], equals('synced'));
+
+      // 3. 2-Way Voice Session State Machine
+      expect(store.voiceState, equals(VoiceSessionState.idle));
+      store.startVoiceSession();
+      expect(store.voiceState, equals(VoiceSessionState.listening));
+      store.stopVoiceSession();
+      expect(store.voiceState, equals(VoiceSessionState.idle));
+    });
+
+    testWidgets('Mobile viewport renders 5-Tab BottomNavigationBar and navigates to POS Kasir',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(412, 915);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(const VaultSaaSApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('POS Kasir'), findsOneWidget);
+      expect(find.text('More'), findsOneWidget);
+      await tester.tap(find.text('POS Kasir'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Terminal Kasir POS (Fast Checkout)'), findsOneWidget);
+    });
+
+    testWidgets('All 11 modules render responsively without overflow across 320px, 360px, 390px, and 412px phone screens',
+        (WidgetTester tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final phoneSizes = [
+        const Size(320, 640),
+        const Size(360, 800),
+        const Size(390, 844),
+        const Size(412, 915),
+      ];
+
+      final directBottomTabs = ['Dashboard', 'Inventory', 'POS Kasir', 'Sales'];
+      final moreSheetTabs = ['Shipment', 'Customers', 'Store', 'Report', 'Help', 'Settings', 'Privacy'];
+
+      for (final size in phoneSizes) {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1.0;
+
+        await tester.pumpWidget(const VaultSaaSApp());
+        await tester.pumpAndSettle();
+
+        for (final label in directBottomTabs) {
+          await tester.tap(find.text(label).last);
+          await tester.pumpAndSettle();
+        }
+
+        for (final label in moreSheetTabs) {
+          await tester.tap(find.text('More').last);
+          await tester.pumpAndSettle();
+          final itemFinder = find.text(label).last;
+          await tester.ensureVisible(itemFinder);
+          await tester.tap(itemFinder);
+          await tester.pumpAndSettle();
+        }
+      }
     });
   });
 }

@@ -47,11 +47,15 @@ Route::prefix('inventory')->group(function () {
     Route::get('/', [InventoryController::class, 'index']);
     Route::post('/', [InventoryController::class, 'store']);
     Route::get('/categories', [InventoryController::class, 'categories']);
+    Route::get('/recently-deleted', [InventoryController::class, 'recentlyDeleted']);
     Route::post('/batch-restock', [InventoryController::class, 'batchRestock']);
+    Route::post('/purge-expired', [InventoryController::class, 'purgeExpired']);
     Route::get('/{id}', [InventoryController::class, 'show']);
     Route::put('/{id}', [InventoryController::class, 'update']);
     Route::delete('/{id}', [InventoryController::class, 'destroy']);
     Route::post('/{id}/restock', [InventoryController::class, 'restock']);
+    Route::post('/{id}/soft-delete', [InventoryController::class, 'softDelete']);
+    Route::post('/{id}/restore', [InventoryController::class, 'restore']);
 });
 
 // 4. Customer CRM
@@ -105,9 +109,11 @@ Route::prefix('transactions')->group(function () {
 });
 
 // 11. Supri AI Assistant & Neural Memory Engine
+Route::post('/voice-transcribe', [SupriAiController::class, 'voiceTranscribe']);
 Route::prefix('supri')->group(function () {
     Route::get('/history', [SupriAiController::class, 'history']);
     Route::post('/chat', [SupriAiController::class, 'chat']);
+    Route::post('/voice-transcribe', [SupriAiController::class, 'voiceTranscribe']);
     Route::post('/restock-now', [SupriAiController::class, 'executeRestock']);
     Route::get('/memories', [SupriAiController::class, 'memories']);
     Route::post('/train-memory', [SupriAiController::class, 'trainMemory']);

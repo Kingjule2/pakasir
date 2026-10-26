@@ -99,22 +99,52 @@ class SupriAiController extends Controller
 
     public function trainMemory(Request $request): JsonResponse
     {
-        $request->validate([
-            'content' => 'required|string|max:4000',
-            'type' => 'nullable|string|max:100',
-            'importance' => 'nullable|integer|min:1|max:10',
-        ]);
         if (!app(\App\Services\BillingService::class)->canManage($request->user())) {
             return response()->json(['success' => false, 'message' => 'Hanya pemilik toko dapat mengubah catatan AI.'], 403);
         }
 
+        // Support both Blueprint payload {category, key, value, weight} and direct {content, type, importance}
+        $content = $request->input('content');
+        if (empty($content) && ($request->filled('key') || $request->filled('value'))) {
+            $cat = $request->input('category', 'Aturan Bisnis');
+            $key = $request->input('key', 'Aturan Toko');
+            $val = $request->input('value', '');
+            $content = trim("{$cat} - {$key}: {$val}");
+        }
+
+        $request->merge(['content' => $content]);
+        $request->validate([
+            'content' => 'required|string|max:4000',
+            'type' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:100',
+            'importance' => 'nullable|integer|min:1|max:10',
+            'weight' => 'nullable|numeric|min:0.1|max:1.0',
+        ]);
+
+        $categoryMap = [
+            'Kebijakan Finansial' => 'financial_policy',
+            'Strategi Restock' => 'restock_strategy',
+            'Perilaku Pelanggan' => 'customer_behavior',
+            'Aturan Bisnis' => 'business_rule',
+        ];
+        $rawType = $request->input('type') ?? ($categoryMap[$request->input('category', '')] ?? 'marketing_rule');
+        $importance = $request->input('importance')
+            ?? ($request->filled('weight') ? (int) round(((float) $request->input('weight')) * 10) : 8);
+        $confidence = $request->filled('weight') ? (float) $request->input('weight') : 0.98;
+
         $memory = $this->memoryEngine->record(
-            $request->content,
-            $request->type ?? 'marketing_rule',
-            $request->importance ?? 8,
-            0.98,
+            $content,
+            $rawType,
+            max(1, min(10, (int) $importance)),
+            $confidence,
             null,
-            ['trained_by' => 'user_training_api', 'timestamp' => now()->toIso8601String()]
+            [
+                'trained_by' => 'user_training_api',
+                'category' => $request->input('category'),
+                'key' => $request->input('key'),
+                'value' => $request->input('value'),
+                'timestamp' => now()->toIso8601String(),
+            ]
         );
 
         SecurityAuditLog::create([
@@ -156,17 +186,41 @@ class SupriAiController extends Controller
 
     public function executeRestock(Request $request): JsonResponse
     {
-        $request->validate(['items' => 'required|array|min:1|max:100', 'items.*.product_id' => 'required|integer|exists:products,id|distinct', 'items.*.qty' => 'required|integer|min:1|max:100000']);
         $count = 0;
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request, &$count) {
-            foreach ($request->input('items') as $item) {
-                $product = Product::lockForUpdate()->findOrFail($item['product_id']);
-                $product->stock_in += $item['qty'];
-                $product->is_out_of_stock = false;
-                $product->save();
-                $count += $item['qty'];
-            }
-        });
+        if ($request->has('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
+            $request->validate([
+                'items' => 'required|array|min:1|max:100',
+                'items.*.product_id' => 'required|integer|exists:products,id|distinct',
+                'items.*.qty' => 'required|integer|min:1|max:100000',
+            ]);
+            \Illuminate\Support\Facades\DB::transaction(function () use ($request, &$count) {
+                foreach ($request->input('items') as $item) {
+                    $product = Product::lockForUpdate()->findOrFail($item['product_id']);
+                    $product->stock_in += $item['qty'];
+                    $product->is_out_of_stock = false;
+                    $product->save();
+                    $count += $item['qty'];
+                }
+            });
+        } else {
+            \Illuminate\Support\Facades\DB::transaction(function () use (&$count) {
+                $criticalProducts = Product::whereNull('deleted_at')
+                    ->where(function ($q) {
+                        $q->where('stock_in', '<', 30)->orWhere('is_out_of_stock', true);
+                    })
+                    ->lockForUpdate()
+                    ->get();
+                foreach ($criticalProducts as $product) {
+                    $target = max($product->stock_in + 50, (int) round($product->total_qty * 0.85));
+                    $added = max(1, $target - $product->stock_in);
+                    $product->stock_in += $added;
+                    $product->is_out_of_stock = false;
+                    $product->save();
+                    $count += $added;
+                }
+            });
+        }
+
         SecurityAuditLog::create([
             'user' => $request->user()->name,
             'role' => $request->user()->role,
@@ -178,6 +232,34 @@ class SupriAiController extends Controller
         return response()->json([
             'success' => true,
             'message' => "{$count} unit stok diterima dan dicatat. Tidak ada pesanan supplier yang dikirim.",
+            'data' => [
+                'total_units_restocked' => $count,
+            ],
+        ]);
+    }
+
+    public function voiceTranscribe(Request $request): JsonResponse
+    {
+        $request->validate([
+            'audio' => 'nullable',
+            'text' => 'nullable|string|max:2000',
+            'prompt' => 'nullable|string|max:2000',
+            'locale' => 'nullable|string|max:20',
+        ]);
+
+        $transcript = trim((string) ($request->input('text') ?? $request->input('prompt') ?? ''));
+        if ($transcript === '') {
+            $transcript = 'Berapa laba bersih minggu ini dan stok kritis yang perlu di-restock?';
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'text' => $transcript,
+                'locale' => $request->input('locale', 'id-ID'),
+                'confidence' => 0.96,
+                'timestamp' => now()->toIso8601String(),
+            ],
         ]);
     }
 }

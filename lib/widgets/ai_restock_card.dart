@@ -79,8 +79,10 @@ class AiRestockCard extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Legend
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          const Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -101,7 +103,6 @@ class AiRestockCard extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(width: 10),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

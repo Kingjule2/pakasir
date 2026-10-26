@@ -45,27 +45,31 @@ class _StockVolumeChartState extends State<StockVolumeChart> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Expanded(
-                child: Text(
-                  'Total Stock Volume vs Consume Rate',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
-                  ),
+              const Text(
+                'Total Stock Volume vs Consume Rate',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.2,
                 ),
               ),
-              // Legend
-              _buildLegendDot(AppColors.brandLime, 'Stock volume'),
-              const SizedBox(width: 14),
-              _buildLegendDot(const Color(0xFFA1BC20), 'Consume'),
-              const SizedBox(width: 16),
-              // Timeframe dropdown
-              _buildTimeframeDropdown(),
+              Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _buildLegendDot(AppColors.brandLime, 'Stock volume'),
+                  _buildLegendDot(const Color(0xFFA1BC20), 'Consume'),
+                  _buildTimeframeDropdown(),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 24),

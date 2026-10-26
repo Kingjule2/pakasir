@@ -33,35 +33,40 @@ class AppSidebar extends StatelessWidget {
                   ? MainAxisAlignment.center
                   : MainAxisAlignment.spaceBetween,
               children: [
-                if (!isCollapsed) ...[
-                  Row(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandLime,
-                          borderRadius: BorderRadius.circular(8),
+                if (!isCollapsed)
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.brandLime,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.grid_view_rounded,
+                            size: 16,
+                            color: AppColors.cardDark,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.grid_view_rounded,
-                          size: 16,
-                          color: AppColors.cardDark,
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Inventor',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'vault',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ],
                 IconButton(
                   onPressed: onToggleCollapse,
                   icon: Icon(
@@ -113,6 +118,20 @@ class AppSidebar extends StatelessWidget {
                   activeIcon: Icons.inventory_2_rounded,
                   isSelected: activeNav == 'Inventory',
                   onTap: () => onNavSelected('Inventory'),
+                ),
+                _buildNavItem(
+                  title: 'POS',
+                  icon: Icons.point_of_sale_outlined,
+                  activeIcon: Icons.point_of_sale_rounded,
+                  isSelected: activeNav == 'POS',
+                  onTap: () => onNavSelected('POS'),
+                ),
+                _buildNavItem(
+                  title: 'Sales',
+                  icon: Icons.receipt_long_outlined,
+                  activeIcon: Icons.receipt_long_rounded,
+                  isSelected: activeNav == 'Sales',
+                  onTap: () => onNavSelected('Sales'),
                 ),
                 _buildNavItem(
                   title: 'Shipment',

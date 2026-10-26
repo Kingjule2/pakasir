@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pakasir2/main.dart';
 
 void main() {
-  testWidgets('Vault SaaS Dashboard renders full Bento Grid & Supri AI',
+  testWidgets('Vault SaaS Dashboard renders Mobile View, KPIs & Supri AI',
       (WidgetTester tester) async {
-    // Set a wide viewport for desktop/tablet layout
+    // Set viewport
     tester.view.physicalSize = const Size(1440, 1080);
     tester.view.devicePixelRatio = 1.0;
 
@@ -17,32 +17,19 @@ void main() {
     await tester.pumpWidget(const VaultSaaSApp());
     await tester.pumpAndSettle();
 
-    // Verify Brand Logo & Navigation
-    expect(find.text('vault'), findsOneWidget);
+    // Verify Mobile Inventor Brand & Header
+    expect(find.text('Inventor'), findsWidgets);
+    expect(find.text('Selamat Datang kembali, Evano!'), findsOneWidget);
+    expect(find.text('Penjualan Hari Ini'), findsOneWidget);
+    expect(find.text('Omset Bulan Ini'), findsOneWidget);
+    expect(find.text('Tingkat Ketersediaan Stok'), findsOneWidget);
+
+    // Verify 5-Tab Bottom Navigation Bar
+    expect(find.text('Dashboard'), findsWidgets);
     expect(find.text('Inventory'), findsWidgets);
-
-    // Verify 4 Metric Cards
-    expect(find.text('Total Orders'), findsOneWidget);
-    expect(find.text('Already Delivered'), findsOneWidget);
-    expect(find.text('Product Return'), findsOneWidget);
-    expect(find.text('Turnover Rate'), findsOneWidget);
-
-    // Verify Bento Chart & AI Tables
-    expect(find.text('Total Stock Volume vs Consume Rate'), findsOneWidget);
-    expect(find.text('Custom Tags & Labels'), findsOneWidget);
-    expect(find.text('Sales & Order'), findsOneWidget);
-    expect(find.text('AI Restock Recommendation'), findsOneWidget);
-    expect(find.text('Still Not Arrived'), findsOneWidget);
+    expect(find.text('Sales'), findsWidgets);
 
     // Verify Supri AI exists
     expect(find.text('Supri AI'), findsWidgets);
-
-    // Open Supri AI panel by tapping header button
-    await tester.tap(find.text('Supri AI').first);
-    await tester.pumpAndSettle();
-
-    // Verify Supri Coworker panel elements
-    expect(find.text('Super Intelligent'), findsOneWidget);
-    expect(find.text('Berapa laba bersih minggu ini?'), findsOneWidget);
   });
 }

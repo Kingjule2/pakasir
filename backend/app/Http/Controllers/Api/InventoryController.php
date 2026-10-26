@@ -15,6 +15,12 @@ class InventoryController extends Controller
     {
         $query = Product::query();
 
+        if ($request->query('status') === 'deleted') {
+            $query->whereNotNull('deleted_at');
+        } elseif ($request->query('status') !== 'all') {
+            $query->whereNull('deleted_at');
+        }
+
         if ($request->has('tag') && $request->tag !== 'Semua') {
             $query->where('tag', $request->tag);
         }
@@ -39,7 +45,34 @@ class InventoryController extends Controller
             'data' => [
                 'total_items' => $products->count(),
                 'items' => $products,
-                'tags' => ['Fast Moving', 'New Arrival', 'Low Stock', 'Over Stock'],
+                'tags' => ['Fast Moving', 'Regular', 'Discounted', 'Low Demand', 'Dead Items', 'Trending', 'New Arrival', 'Low Stock', 'Over Stock'],
+            ],
+        ]);
+    }
+
+    public function recentlyDeleted(): JsonResponse
+    {
+        $products = Product::whereNotNull('deleted_at')
+            ->orderByDesc('deleted_at')
+            ->get()
+            ->map(function (Product $product) {
+                $deleteAfter = $product->delete_after ?? ($product->deleted_at ? $product->deleted_at->copy()->addDays(30) : now()->addDays(30));
+                $daysRemaining = max(0, (int) ceil(now()->diffInSeconds($deleteAfter, false) / 86400));
+                $payload = $product->toArray();
+                $payload['daysRemaining'] = $daysRemaining;
+                $payload['days_remaining'] = $daysRemaining;
+                $payload['deleteAfter'] = $deleteAfter->toIso8601String();
+                $payload['delete_after'] = $deleteAfter->toIso8601String();
+                $payload['deletedReason'] = $product->deleted_reason ?? 'Discontinued';
+                $payload['deleted_reason'] = $product->deleted_reason ?? 'Discontinued';
+                return $payload;
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_items' => $products->count(),
+                'items' => $products,
             ],
         ]);
     }
@@ -165,16 +198,131 @@ class InventoryController extends Controller
         ]);
     }
 
+    public function softDelete(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'reason' => 'nullable|string|max:255',
+            'hold_days' => 'nullable|integer|min:1|max:365',
+        ]);
+
+        $product = Product::findOrFail($id);
+        $reason = $request->input('reason', 'Discontinued');
+        $holdDays = (int) $request->input('hold_days', 30);
+
+        $product->deleted_at = now();
+        $product->delete_after = now()->addDays($holdDays);
+        $product->deleted_reason = $reason;
+        $product->is_active = false;
+        $product->save();
+
+        SecurityAuditLog::create([
+            'user' => $request->user()?->name ?? 'Admin User',
+            'role' => $request->user()?->role ?? 'Superadmin',
+            'action' => "Soft Delete Produk: {$product->name} (Alasan: {$reason})",
+            'target' => 'Inventory Hold',
+            'ip_address' => $request->ip(),
+            'status' => 'Peringatan',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Produk {$product->name} dipindahkan ke Recently Deleted (masa retensi {$holdDays} hari).",
+            'data' => array_merge($product->toArray(), [
+                'daysRemaining' => $holdDays,
+                'deleteAfter' => $product->delete_after->toIso8601String(),
+                'deletedReason' => $reason,
+            ]),
+        ]);
+    }
+
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $product = Product::findOrFail($id);
+        $product->deleted_at = null;
+        $product->delete_after = null;
+        $product->deleted_reason = null;
+        $product->is_active = true;
+        $product->save();
+
+        SecurityAuditLog::create([
+            'user' => $request->user()?->name ?? 'Admin User',
+            'role' => $request->user()?->role ?? 'Superadmin',
+            'action' => "Pulihkan Produk dari Recently Deleted: {$product->name}",
+            'target' => 'Inventory',
+            'ip_address' => $request->ip(),
+            'status' => 'Sukses',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Produk {$product->name} berhasil dipulihkan ke katalog aktif.",
+            'data' => $product,
+        ]);
+    }
+
+    public function purgeExpired(Request $request): JsonResponse
+    {
+        $force = $request->boolean('force', false);
+        $query = Product::whereNotNull('deleted_at');
+        if (!$force) {
+            $query->where('delete_after', '<=', now());
+        }
+        $expired = $query->get();
+        $count = $expired->count();
+        foreach ($expired as $product) {
+            $product->delete();
+        }
+
+        SecurityAuditLog::create([
+            'user' => $request->user()?->name ?? 'Admin User',
+            'role' => $request->user()?->role ?? 'Superadmin',
+            'action' => "Purge Permanen {$count} Produk Expired dari Recently Deleted",
+            'target' => 'Inventory Recycle Bin',
+            'ip_address' => $request->ip(),
+            'status' => 'Sukses',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} produk yang melewati masa retensi telah dihapus permanen.",
+            'data' => [
+                'purged_count' => $count,
+            ],
+        ]);
+    }
+
     public function batchRestock(Request $request): JsonResponse
     {
-        $products = Product::where('stock_in', '<', 30)->orWhere('is_out_of_stock', true)->get();
-        $count = 0;
+        if ($request->has('items') && is_array($request->input('items'))) {
+            $request->validate([
+                'items' => 'required|array|min:1|max:100',
+                'items.*.product_id' => 'required|integer|exists:products,id',
+                'items.*.qty' => 'required|integer|min:1|max:100000',
+            ]);
+            $count = 0;
+            $restockedProducts = 0;
+            foreach ($request->input('items') as $item) {
+                $p = Product::findOrFail($item['product_id']);
+                $p->stock_in += (int) $item['qty'];
+                $p->is_out_of_stock = false;
+                $p->save();
+                $count += (int) $item['qty'];
+                $restockedProducts++;
+            }
+        } else {
+            $products = Product::whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->where('stock_in', '<', 30)->orWhere('is_out_of_stock', true);
+                })->get();
+            $count = 0;
+            $restockedProducts = $products->count();
 
-        foreach ($products as $p) {
-            $p->stock_in = (int) round($p->total_qty * 0.85);
-            $p->is_out_of_stock = false;
-            $p->save();
-            $count += 60;
+            foreach ($products as $p) {
+                $p->stock_in = (int) round($p->total_qty * 0.85);
+                $p->is_out_of_stock = false;
+                $p->save();
+                $count += 60;
+            }
         }
 
         SecurityAuditLog::create([
@@ -190,7 +338,7 @@ class InventoryController extends Controller
             'success' => true,
             'message' => "Restock order sebanyak {$count} unit berhasil dieksekusi otomatis oleh Memory Engine.",
             'data' => [
-                'restocked_products_count' => $products->count(),
+                'restocked_products_count' => $restockedProducts,
                 'total_units_restocked' => $count,
             ],
         ]);

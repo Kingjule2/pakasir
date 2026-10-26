@@ -9,9 +9,11 @@ import '../models/store_settings.dart';
 import '../models/security_models.dart';
 import '../models/help_models.dart';
 import 'gemini_service.dart';
+enum VoiceSessionState { idle, greeting, listening, processing, speaking }
+
 class InventoryStore extends ChangeNotifier {
   // Navigation
-  String _activeNav = 'Inventory';
+  String _activeNav = 'Dashboard';
   String get activeNav => _activeNav;
 
   void setActiveNav(String nav) {
@@ -932,6 +934,300 @@ class InventoryStore extends ChangeNotifier {
       attachedFileName: fileName,
     );
     _chatMessages.add(response);
+    notifyListeners();
+  }
+
+  // ==================== RECENTLY DELETED (SOFT DELETE HOLD) ====================
+  final List<InventoryItem> _recentlyDeletedItems = [];
+  List<InventoryItem> get recentlyDeletedItems => List.unmodifiable(_recentlyDeletedItems);
+
+  void softDeleteProduct(String id, {String reason = 'Discontinued', int holdDays = 30}) {
+    final index = _items.indexWhere((it) => it.id == id);
+    if (index != -1) {
+      final removed = _items.removeAt(index);
+      final now = DateTime.now();
+      _recentlyDeletedItems.insert(
+        0,
+        removed.copyWith(
+          deletedAt: now,
+          deleteAfter: now.add(Duration(days: holdDays)),
+          deletedReason: reason,
+        ),
+      );
+      notifyListeners();
+    }
+  }
+
+  void restoreProduct(String id) {
+    final index = _recentlyDeletedItems.indexWhere((it) => it.id == id);
+    if (index != -1) {
+      final restored = _recentlyDeletedItems.removeAt(index).copyWith(clearDeleted: true);
+      _items.insert(0, restored);
+      notifyListeners();
+    }
+  }
+
+  int purgeExpiredDeletedProducts({bool forceAll = false}) {
+    final now = DateTime.now();
+    final before = _recentlyDeletedItems.length;
+    if (forceAll) {
+      _recentlyDeletedItems.clear();
+    } else {
+      _recentlyDeletedItems.removeWhere(
+        (it) => it.deleteAfter != null && !it.deleteAfter!.isAfter(now),
+      );
+    }
+    final purged = before - _recentlyDeletedItems.length;
+    if (purged > 0) notifyListeners();
+    return purged;
+  }
+
+  // ==================== POS TERMINAL & OFFLINE-FIRST QUEUE ====================
+  final Map<String, int> _cartQuantities = {};
+  Map<String, int> get cartQuantities => Map.unmodifiable(_cartQuantities);
+
+  bool _isOfflineMode = false;
+  bool get isOfflineMode => _isOfflineMode;
+
+  void setOfflineMode(bool offline) {
+    _isOfflineMode = offline;
+    if (!offline && _offlineQueue.isNotEmpty) {
+      syncOfflineTransactions();
+    } else {
+      notifyListeners();
+    }
+  }
+
+  final List<Map<String, dynamic>> _transactions = [
+    {
+      'id': 'tx-1001',
+      'invoice_number': 'INV-20261026-0001',
+      'created_at': '26/10/2026 14:20',
+      'customer_name': 'Budi Santoso',
+      'cashier_name': 'Budi Santoso',
+      'outlet_name': 'Vault Central SCBD (Flagship)',
+      'payment_method': 'QRIS',
+      'payment_status': 'Completed',
+      'sync_status': 'synced',
+      'subtotal': 69000.0,
+      'discount': 0.0,
+      'tax_amount': 7590.0,
+      'service_fee': 0.0,
+      'total_amount': 76590.0,
+      'amount_paid': 76590.0,
+      'items': [
+        {'name': 'Headphones', 'quantity': 1, 'price': 25000.0, 'subtotal': 25000.0},
+        {'name': 'T Shirts', 'quantity': 2, 'price': 22000.0, 'subtotal': 44000.0},
+      ],
+    },
+  ];
+  List<Map<String, dynamic>> get transactions => List.unmodifiable(_transactions);
+
+  final List<Map<String, dynamic>> _offlineQueue = [];
+  List<Map<String, dynamic>> get offlineQueue => List.unmodifiable(_offlineQueue);
+
+  void addToCart(InventoryItem item) {
+    if (item.stockIn <= 0 || item.isOutOfStock) return;
+    final current = _cartQuantities[item.id] ?? 0;
+    if (current < item.stockIn) {
+      _cartQuantities[item.id] = current + 1;
+      notifyListeners();
+    }
+  }
+
+  void updateCartQuantity(String productId, int qty) {
+    final idx = _items.indexWhere((i) => i.id == productId);
+    if (idx == -1) return;
+    if (qty <= 0) {
+      _cartQuantities.remove(productId);
+    } else {
+      _cartQuantities[productId] = qty > _items[idx].stockIn ? _items[idx].stockIn : qty;
+    }
+    notifyListeners();
+  }
+
+  void removeFromCart(String productId) {
+    _cartQuantities.remove(productId);
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _cartQuantities.clear();
+    notifyListeners();
+  }
+
+  Map<String, dynamic>? checkoutPosTransaction({
+    String paymentMethod = 'Cash',
+    String customerName = 'Walk-in Customer',
+    String outletName = 'Vault Central SCBD (Flagship)',
+    double discount = 0,
+    double? amountPaid,
+  }) {
+    if (_cartQuantities.isEmpty) return null;
+
+    double subtotal = 0;
+    final List<Map<String, dynamic>> txItems = [];
+
+    for (final entry in _cartQuantities.entries) {
+      final idx = _items.indexWhere((i) => i.id == entry.key);
+      if (idx == -1) continue;
+      final prod = _items[idx];
+      final qty = entry.value > prod.stockIn ? prod.stockIn : entry.value;
+      if (qty <= 0) continue;
+
+      final lineSubtotal = prod.price * qty;
+      subtotal += lineSubtotal;
+
+      final remainingStock = prod.stockIn - qty;
+      _items[idx] = prod.copyWith(
+        stockIn: remainingStock,
+        isOutOfStock: remainingStock <= 0,
+      );
+
+      txItems.add({
+        'product_id': prod.id,
+        'name': prod.name,
+        'sku': prod.sku,
+        'quantity': qty,
+        'price': prod.price,
+        'subtotal': lineSubtotal,
+      });
+    }
+
+    if (txItems.isEmpty) return null;
+
+    final taxable = (subtotal - discount) < 0 ? 0.0 : (subtotal - discount);
+    final taxAmount = _settings.taxEnabled ? (taxable * _settings.taxRate / 100.0) : 0.0;
+    final serviceFee = _settings.serviceFeeEnabled ? (taxable * _settings.serviceFeeRate / 100.0) : 0.0;
+    final totalAmount = taxable + taxAmount + serviceFee;
+    final paid = amountPaid ?? totalAmount;
+
+    final invoiceNo = _isOfflineMode
+        ? 'INV-OFFLINE-${(_offlineQueue.length + 1).toString().padLeft(4, '0')}'
+        : 'INV-20261026-${(_transactions.length + 1).toString().padLeft(4, '0')}';
+
+    final record = <String, dynamic>{
+      'id': 'tx-${DateTime.now().millisecondsSinceEpoch}',
+      'invoice_number': invoiceNo,
+      'created_at': '26/10/2026 14:35',
+      'customer_name': customerName,
+      'cashier_name': 'Budi Santoso',
+      'outlet_name': outletName,
+      'payment_method': paymentMethod,
+      'payment_status': 'Completed',
+      'sync_status': _isOfflineMode ? 'pending' : 'synced',
+      'subtotal': subtotal,
+      'discount': discount,
+      'tax_amount': taxAmount,
+      'service_fee': serviceFee,
+      'total_amount': totalAmount,
+      'amount_paid': paid,
+      'change_amount': (paid - totalAmount) > 0 ? (paid - totalAmount) : 0.0,
+      'items': txItems,
+    };
+
+    _transactions.insert(0, record);
+    if (_isOfflineMode) {
+      _offlineQueue.add(record);
+    }
+    _cartQuantities.clear();
+    notifyListeners();
+    return record;
+  }
+
+  int syncOfflineTransactions() {
+    final count = _offlineQueue.length;
+    for (final queued in _offlineQueue) {
+      queued['sync_status'] = 'synced';
+      if (queued['invoice_number'].toString().startsWith('INV-OFFLINE-')) {
+        queued['invoice_number'] = queued['invoice_number'].toString().replaceFirst('INV-OFFLINE-', 'INV-SYNCED-');
+      }
+    }
+    _offlineQueue.clear();
+    notifyListeners();
+    return count;
+  }
+
+  String formatEscPosReceipt(Map<String, dynamic> tx, {String? paperWidth}) {
+    final width = (paperWidth ?? _settings.paperWidth) == '80mm' ? 48 : 32;
+    String line([String ch = '-']) => List.filled(width, ch).join();
+    String center(String text) {
+      final s = text.length > width ? text.substring(0, width) : text;
+      final pad = ((width - s.length) / 2).floor();
+      return '${' ' * (pad < 0 ? 0 : pad)}$s';
+    }
+    String row(String left, String right) {
+      final space = width - left.length - right.length;
+      if (space >= 1) return '$left${' ' * space}$right';
+      final maxLeft = (width - right.length - 1).clamp(1, width);
+      return '${left.substring(0, maxLeft)} $right';
+    }
+
+    final items = (tx['items'] as List?) ?? const [];
+    final lines = <String>[
+      line('='),
+      center('PAKASIR VAULT'),
+      center((tx['outlet_name'] ?? 'SCBD Flagship Store').toString()),
+      center('Jl. Jend. Sudirman Kav. 52'),
+      center('Telp: +62 812-3456-7890'),
+      line('='),
+      'No. Faktur : ${tx['invoice_number'] ?? 'INV-20261026-0042'}',
+      'Waktu      : ${tx['created_at'] ?? '26/10/2026 14:35'}',
+      'Kasir      : ${tx['cashier_name'] ?? 'Budi Santoso'}',
+      'Pelanggan  : ${tx['customer_name'] ?? 'Walk-in Customer'}',
+      line('-'),
+      for (final it in items)
+        row('${it['quantity']}x ${it['name']}', 'Rp ${(it['subtotal'] as num).toStringAsFixed(0)}'),
+      line('-'),
+      row('Subtotal', 'Rp ${(tx['subtotal'] as num? ?? 0).toStringAsFixed(0)}'),
+      row('PPN (${_settings.taxRate.toStringAsFixed(0)}%)', 'Rp ${(tx['tax_amount'] as num? ?? 0).toStringAsFixed(0)}'),
+      line('-'),
+      row('TOTAL AKHIR', 'Rp ${(tx['total_amount'] as num? ?? 0).toStringAsFixed(0)}'),
+      'Metode Bayar : ${tx['payment_method'] ?? 'QRIS Dinamis'}',
+      'Status       : ${tx['sync_status'] == 'pending' ? 'ANTRIAN OFFLINE' : 'LUNAS'}',
+      line('='),
+      center('Terima kasih atas kunjungan'),
+      center('Barang yang sudah dibeli'),
+      center('tidak dapat ditukar kembali'),
+      line('='),
+    ];
+    return lines.join('\n');
+  }
+
+  // ==================== 2-WAY VOICE SESSION STATE MACHINE ====================
+  VoiceSessionState _voiceState = VoiceSessionState.idle;
+  VoiceSessionState get voiceState => _voiceState;
+
+  String _voiceStatusMessage = '';
+  String get voiceStatusMessage => _voiceStatusMessage;
+
+  void startVoiceSession() {
+    _voiceState = VoiceSessionState.greeting;
+    _voiceStatusMessage = 'Halo bos, mau bahas ide apa lagi nih?';
+    notifyListeners();
+    _voiceState = VoiceSessionState.listening;
+    notifyListeners();
+  }
+
+  void stopVoiceSession() {
+    _voiceState = VoiceSessionState.idle;
+    _voiceStatusMessage = '';
+    notifyListeners();
+  }
+
+  Future<void> processVoiceTranscript(String transcript) async {
+    if (transcript.trim().isEmpty) {
+      stopVoiceSession();
+      return;
+    }
+    _voiceState = VoiceSessionState.processing;
+    _voiceStatusMessage = transcript;
+    notifyListeners();
+    await sendMessageToSupri(transcript);
+    _voiceState = VoiceSessionState.speaking;
+    _voiceStatusMessage = _chatMessages.isNotEmpty ? _chatMessages.last.text : '';
+    notifyListeners();
+    _voiceState = VoiceSessionState.listening;
     notifyListeners();
   }
 }

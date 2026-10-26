@@ -13,11 +13,24 @@ class DashboardController extends Controller
 {
     public function index(): JsonResponse
     {
-        $products = Product::all();
-        $criticalCount = $products->filter(function ($p) {
-            return $p->stock_in < ($p->total_qty * 0.3) || $p->is_out_of_stock;
-        })->count();
-
+        $products = Product::whereNull('deleted_at')->get();
+        $outOfStockCount = $products->filter(fn ($p) => $p->stock_in <= 0 || $p->is_out_of_stock)->count();
+        $lowStockCount = $products->filter(fn ($p) => $p->stock_in > 0 && !$p->is_out_of_stock && $p->stock_in < max(30, $p->total_qty * 0.3))->count();
+        $inStockCount = max(0, $products->count() - $outOfStockCount - $lowStockCount);
+        $criticalCount = $outOfStockCount + $lowStockCount;
+        $stockAlerts = $products->filter(fn ($p) => $p->stock_in < max(30, $p->total_qty * 0.3) || $p->is_out_of_stock)
+            ->sortBy('stock_in')
+            ->take(3)
+            ->values()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'category' => $p->category,
+                'stock_in' => (int) $p->stock_in,
+                'total_qty' => (int) $p->total_qty,
+                'is_out_of_stock' => (bool) ($p->stock_in <= 0 || $p->is_out_of_stock),
+            ]);
         $outlets = StoreOutlet::all();
         $openOutletsCount = $outlets->where('is_open', true)->count();
         $paid = Transaction::where('payment_status', 'paid');
@@ -69,6 +82,18 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'critical_stock' => $criticalCount,
+                'open_outlets' => $openOutletsCount,
+                'total_revenue' => (float) $monthlyTurnover,
+                'total_products' => $products->count(),
+                'chart_velocity' => $chartData,
+                'stock_availability' => [
+                    'in_stock' => $inStockCount,
+                    'low_stock' => $lowStockCount,
+                    'out_of_stock' => $outOfStockCount,
+                    'total' => $products->count(),
+                ],
+                'stock_alerts' => $stockAlerts,
                 'system_status' => [
                     'status' => 'LIVE_ONLINE',
                     'open_outlets' => $openOutletsCount,
@@ -81,6 +106,7 @@ class DashboardController extends Controller
                     'total_customers' => $totalCustomers,
                     'vip_customers' => $vipCustomers,
                     'low_stock_alerts' => $criticalCount,
+                    'total_products' => $products->count(),
                 ],
                 'sales_velocity_chart' => $chartData,
                 'outlets_leaderboard' => $outlets,

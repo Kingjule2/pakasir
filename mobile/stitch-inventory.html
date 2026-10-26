@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "secondary-fixed": "#cde5ff", "primary-container": "#12134d", "app-bg": "#FAFAFA", "error": "#ba1a1a", "primary-fixed-dim": "#c0c1ff", "status-positive-bg": "#DDF5E5", "background": "#f9f9ff", "surface-bright": "#f9f9ff", "tertiary-container": "#001d34", "surface-container-high": "#e1e8fd", "table-header-bg": "#E8EEFB", "border-subtle": "#E5E7EB", "outline": "#777681", "surface-container-highest": "#dce2f7", "surface-container": "#e9edff", "status-positive-text": "#1E9E4F", "inverse-primary": "#c0c1ff", "surface-container-low": "#f1f3ff", "error-container": "#ffdad6", "text-muted": "#9CA3AF", "on-surface-variant": "#46464f", "surface-alt": "#F7F7F8", "on-error": "#ffffff", "on-secondary-container": "#43627e", "on-tertiary-container": "#5388b9", "on-tertiary-fixed-variant": "#004a78", "on-tertiary-fixed": "#001d34", "on-primary-fixed": "#12134d", "on-secondary-fixed": "#001d32", "secondary": "#42617d", "tertiary-fixed": "#cfe5ff", "secondary-container": "#bdddff", "on-secondary-fixed-variant": "#2a4965", "inverse-surface": "#293040", "surface-variant": "#dce2f7", "on-primary": "#ffffff", "outline-variant": "#c7c5d1", "surface-tint": "#575994", "surface": "#FFFFFF", "chart-area": "#EAF0FB", "on-secondary": "#ffffff", "secondary-fixed-dim": "#aacaea", "primary-fixed": "#e1e0ff", "tertiary": "#000000", "status-warning-bg": "#D6E8FB", "tertiary-fixed-dim": "#99cbff", "on-background": "#141b2b", "primary": "#000000", "text-secondary": "#6B7280", "on-surface": "#141b2b", "status-warning-text": "#2D6FB5", "inverse-on-surface": "#edf0ff", "status-negative-bg": "#FDE3E3", "on-error-container": "#93000a", "surface-dim": "#d3daef", "on-tertiary": "#ffffff", "status-negative-text": "#D83A3A", "surface-container-lowest": "#ffffff", "on-primary-container": "#7d7ebd", "on-primary-fixed-variant": "#3f417b" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1.5rem", "gutter-desktop": "1rem", "gutter": "1rem", "space-sm": "0.5rem", "margin-mobile": "1rem", "space-xl": "1.5rem", "space-xs": "0.25rem", "space-lg": "1rem", "gutter-tablet": "0.75rem", "space-md": "0.75rem" }, "fontFamily": { "body-lg": ["Inter"], "headline-sm": ["Inter"], "headline-lg": ["Inter"], "body-md": ["Inter"], "body-sm": ["Inter"], "caption": ["Inter"], "label-md": ["Inter"], "headline-md": ["Inter"], "label-sm": ["Inter"], "headline-lg-mobile": ["Inter"] }, "fontSize": { "body-lg": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "headline-sm": ["15px", { "lineHeight": "20px", "fontWeight": "500" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }], "body-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "caption": ["10px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }], "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-app-bg text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-margin-mobile flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm flex-shrink-0"><div class="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center text-on-primary"><span class="material-symbols-outlined text-[20px]">inventory_2</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold">Inventor</span><span class="font-caption text-caption text-text-muted leading-none -mt-0.5">Inventory</span></div></div><div class="flex items-center gap-space-xs"><button aria-label="Search" class="w-11 h-11 rounded-lg flex items-center justify-center text-text-secondary hover:text-on-surface hover:bg-surface-alt transition-colors"><span class="material-symbols-outlined text-[20px]">search</span></button><button aria-label="Notifications" class="relative w-11 h-11 rounded-lg flex items-center justify-center text-text-secondary hover:text-on-surface hover:bg-surface-alt transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-space-xs"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-app-bg"><div class="flex flex-col w-full">
+<div class="px-margin-mobile pt-space-md pb-space-xs flex items-center justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<h1 class="font-headline-md text-headline-md text-on-surface">Inventory &amp; Stock</h1>
+<span class="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-surface-container font-caption text-caption text-secondary font-medium">Live</span>
+</div>
+<p class="font-body-sm text-body-sm text-text-secondary mt-0.5">1,840 Active SKUs across 3 hubs</p>
+</div>
+<button class="h-9 px-3.5 rounded-lg bg-primary text-on-primary font-body-md text-body-md flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Add Item</span>
+</button>
+</div>
+<div class="px-margin-mobile pt-space-sm pb-space-sm flex items-center gap-space-xs">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+<input class="w-full h-10 pl-9 pr-3 rounded-full bg-surface-alt text-on-surface placeholder:text-text-muted font-body-md text-body-md focus:outline-none focus:bg-surface-container-low transition-colors" placeholder="Search by name, SKU, or category..." type="text"/>
+</div>
+<button aria-label="Scan Barcode" class="w-10 h-10 rounded-lg bg-surface-alt text-text-secondary flex items-center justify-center active:bg-secondary-container transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+</button>
+<button aria-label="Filter options" class="w-10 h-10 rounded-lg bg-surface-alt text-text-secondary flex items-center justify-center active:bg-secondary-container transition-colors flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+<div class="w-full overflow-x-auto no-scrollbar px-margin-mobile py-space-xs flex items-center gap-2">
+<button class="filter-pill active px-3.5 h-8 rounded-full bg-secondary-container text-on-surface font-label-md text-label-md whitespace-nowrap flex-shrink-0 transition-all">All (1,840)</button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-surface-alt text-text-secondary font-label-md text-label-md whitespace-nowrap flex-shrink-0 transition-all">Pharmacy</button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-surface-alt text-text-secondary font-label-md text-label-md whitespace-nowrap flex-shrink-0 transition-all">Food</button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-surface-alt text-text-secondary font-label-md text-label-md whitespace-nowrap flex-shrink-0 transition-all">Cosmetics</button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-surface-alt text-text-secondary font-label-md text-label-md whitespace-nowrap flex-shrink-0 transition-all">Footwear</button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-status-warning-bg text-status-warning-text font-label-md text-label-md whitespace-nowrap flex-shrink-0 flex items-center gap-1 transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning-text"></span>
+      Low Stock (18)
+    </button>
+<button class="filter-pill px-3.5 h-8 rounded-full bg-status-negative-bg text-status-negative-text font-label-md text-label-md whitespace-nowrap flex-shrink-0 flex items-center gap-1 transition-all">
+<span class="w-1.5 h-1.5 rounded-full bg-status-negative-text"></span>
+      Out of Stock (6)
+    </button>
+</div>
+<div class="px-margin-mobile pt-space-sm pb-space-xs grid grid-cols-2 gap-space-sm">
+<div class="p-3.5 rounded-lg bg-surface-alt flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-secondary">Total Units</span>
+<span class="material-symbols-outlined text-[16px] text-text-muted">shelves</span>
+</div>
+<div class="mt-2 flex items-baseline justify-between">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">4,950</span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-status-positive-bg font-caption text-caption text-status-positive-text font-semibold">
+<span class="material-symbols-outlined text-[12px] leading-none">arrow_upward</span>8%
+        </span>
+</div>
+<span class="font-caption text-caption text-text-muted mt-1">Across 3 fulfillment centers</span>
+</div>
+<div class="p-3.5 rounded-lg bg-surface-alt flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-text-secondary">Needs Reorder</span>
+<span class="material-symbols-outlined text-[16px] text-status-negative-text">warning</span>
+</div>
+<div class="mt-2 flex items-baseline justify-between">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface">24</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-status-negative-bg font-caption text-caption text-status-negative-text font-semibold">
+          Action Req.
+        </span>
+</div>
+<span class="font-caption text-caption text-text-muted mt-1">6 critical zero-stock items</span>
+</div>
+</div>
+<div class="px-margin-mobile pt-space-sm pb-space-xs flex items-center justify-between">
+<span class="font-label-md text-label-md text-text-secondary uppercase tracking-wider">Catalog Inventory</span>
+<button class="font-label-sm text-label-sm text-secondary flex items-center gap-0.5">
+<span>Sort by: Quantity</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+</div>
+<div class="px-margin-mobile space-y-2.5 pb-space-xl">
+<div class="p-3 rounded-lg bg-surface shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-alt flex-shrink-0" data-alt="Pharmaceutical bottle of Now Magnesium dietary supplements on a crisp white clean surface with soft studio lighting, ultra-detailed product photograph" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJv3vhBf-kX3tifSspOCyRmveRnpbUW4jf2H9QybSa2zw-A5DF7byzKWCbAmq1vWl00YQXeyEL9oiwnQMT3QS_pSGtve5GQyRVtlphtsYhmpQMyHLYzczCbPdFvbd76vbg-pvfy4hpAbaIk53hg3qGwDFs6HBPn-n62jtzPJ78RmORdQ17erquQx_qaWtvsSW_DKNZAX76JlSkwn4hi8nkglB8_LAJ7XVxiC80pd4EEXJPrVadCHsc"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider font-semibold">PH-8821 • Pharmacy</span>
+<button aria-label="More options" class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Now Magnesium 500mg</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-body-md text-body-md text-on-surface font-semibold">$18.50</span>
+<span class="text-text-muted font-caption text-caption">•</span>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">warehouse</span> Aisle 4-B (Main)
+            </span>
+</div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between bg-surface-alt/60 p-2 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-positive-bg text-status-positive-text font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-status-positive-text"></span>
+            In Stock
+          </span>
+<span class="font-body-sm text-body-sm text-text-secondary"><strong>1,700</strong> units</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-body-sm text-body-sm text-on-surface font-semibold px-1">1</span>
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-alt flex-shrink-0" data-alt="Classic yellow bag of Lay's Savory Potato Chips isolated on studio background, crisp realistic packaging rendering with high definition details" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUvGYbMuw5t8UXyZQ0iJ7VKIdqHRjsiEa-cV6_Lc3vL_Dv1heqBdOkJhAENEgE4TmoyqsTYIi3rIqgc9j9HKlYfYQTyhc-0YAdU6cTajFtIx7rwnkXaoP4XVOgdl5u63amRtx-eZDs8uTL8Fs7CNzJCnldI71xzpA0k3tKeJucOyIktB94gAEaWIy7cimthgQK7Kgj93zWwNZpIxwXDYn8O0UNDIUjmigl2wG0UGlRQsZhF-B0fV50"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider font-semibold">FD-4029 • Food</span>
+<button aria-label="More options" class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Lay's Savory Chips</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-body-md text-body-md text-on-surface font-semibold">$3.20</span>
+<span class="text-text-muted font-caption text-caption">•</span>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">warehouse</span> Rack 12-C (East)
+            </span>
+</div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between bg-surface-alt/60 p-2 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning-text font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning-text"></span>
+            Low Stock
+          </span>
+<span class="font-body-sm text-body-sm text-text-secondary"><strong>120</strong> units</span>
+</div>
+<button class="h-7 px-2.5 rounded-lg bg-secondary text-on-secondary font-label-sm text-label-sm flex items-center gap-1 active:opacity-90">
+<span class="material-symbols-outlined text-[14px]">local_shipping</span>
+<span>Order</span>
+</button>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-alt flex-shrink-0" data-alt="Elegant luxury rose gold lip gloss wand cosmetic product Fenty style aesthetic minimal soft warm studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4H9cT9EhiTUe_sAqFkBbqzfGUcrO4rM1H0kCFQMZWsa_m3p-T2mtkUccnjc-9FDchKoo_zTC4NLgXtRar9ETtehkb5mI0PXRPd6aVHVI22Czi1p5HrE7lA7KrcGNYcYyDI9Lrcl8Vlw3SG3vDpcatH8KBnpgk5MIBzGDQmgg9m_OjQZwL2uxYZ0Q81wIgUVAGSOZQdpjH5WxUC36azs7Z341Hk70UlQ3H_P6fpBOsf2RephI9H-Mz"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider font-semibold">CS-1102 • Cosmetics</span>
+<button aria-label="More options" class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Fenty Beauty Gloss Bomb</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-body-md text-body-md text-on-surface font-semibold">$22.00</span>
+<span class="text-text-muted font-caption text-caption">•</span>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">warehouse</span> Shelf 2-A (Main)
+            </span>
+</div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between bg-surface-alt/60 p-2 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning-text font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning-text"></span>
+            Low Stock
+          </span>
+<span class="font-body-sm text-body-sm text-text-secondary"><strong>45</strong> units</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-body-sm text-body-sm text-on-surface font-semibold px-1">1</span>
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-alt flex-shrink-0" data-alt="Jordan Max Aura 4 basketball sneaker athletic footwear side profile crisp white background clean commercial photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABUfMBdJWTZVcc9CEaBlxT49-EuORp-nDy3d0mj9WHFeu1iT8PYqBVf5tbb-YyhEeKu8W7ftRt1fXnR0Mm8Go_1Q1RkJGipzJvrkCww59PKDVECeN3jBAVcrW-Q6pxq2MEsXiEyLpjMxLiZyoNlWdBQakUanDsZTyzqGZXWj3-KpCxmNmgsS3rRK2WOIcWBT1UWfEKGeLIFhFIamspzHQaJTzQQ1vpKMy_8OlaMOuvO-fy_NbcsLbr"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider font-semibold">SH-9043 • Footwear</span>
+<button aria-label="More options" class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Jordan Max Aura 4</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-body-md text-body-md text-on-surface font-semibold">$130.00</span>
+<span class="text-text-muted font-caption text-caption">•</span>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">warehouse</span> Bay 9 (South)
+            </span>
+</div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between bg-surface-alt/60 p-2 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-negative-bg text-status-negative-text font-label-sm text-label-sm font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-negative-text"></span>
+            Out of Stock
+          </span>
+<span class="font-body-sm text-body-sm text-status-negative-text font-semibold">0 units</span>
+</div>
+<button class="h-7 px-3 rounded-lg bg-error text-on-error font-label-sm text-label-sm flex items-center gap-1 active:opacity-90">
+<span class="material-symbols-outlined text-[14px]">priority_high</span>
+<span>Restock PO</span>
+</button>
+</div>
+</div>
+<div class="p-3 rounded-lg bg-surface shadow-sm flex flex-col gap-2.5">
+<div class="flex items-start gap-3">
+<img class="w-14 h-14 rounded-lg object-cover bg-surface-alt flex-shrink-0" data-alt="Modern ergonomic vertical computer mouse sleek matte dark finish with minimalist ambient desk lighting tech gear photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-cvg2ZFevLxlL-C2TIDGimU4S62tNfjl-KD549bn8unrxSp5wfpRGounsXUvnlMBleg1g3Y0_sFbG_iMWPw9JC2Zn78Z074gWoZwktcB4T8x9CErBc82U2LQHn7aV2T6Y3i8ebBJ8YX7vKFJ4MOqy-UBOqzqIE3Y65njU3tJFEybTZWG5LD0frGKEvgPYdQXyVB95lEu13ZAj6n2wCJG6qKGBAQvBgUoRVYvNcloS7NLl50u01g-w"/>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-caption text-caption text-text-muted uppercase tracking-wider font-semibold">EL-5531 • Electronics</span>
+<button aria-label="More options" class="w-6 h-6 flex items-center justify-center text-text-muted hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface truncate">Wireless Ergonomic Mouse</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-body-md text-body-md text-on-surface font-semibold">$42.00</span>
+<span class="text-text-muted font-caption text-caption">•</span>
+<span class="font-caption text-caption text-text-secondary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">warehouse</span> Aisle 8-A (Main)
+            </span>
+</div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between bg-surface-alt/60 p-2 rounded-lg">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-status-positive-bg text-status-positive-text font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-status-positive-text"></span>
+            In Stock
+          </span>
+<span class="font-body-sm text-body-sm text-text-secondary"><strong>450</strong> units</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-body-sm text-body-sm text-on-surface font-semibold px-1">1</span>
+<button class="w-7 h-7 rounded-lg bg-surface text-on-surface flex items-center justify-center shadow-xs active:bg-surface-alt">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-20 right-4 z-40">
+<button aria-label="Quick Stock Count" class="h-12 px-4 rounded-full bg-primary text-on-primary shadow-lg flex items-center gap-2 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">add_task</span>
+<span class="font-body-md text-body-md font-semibold">Stock Audit</span>
+</button>
+</div>
+</div>
+<script>
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.filter-pill').forEach(p => {
+        if (!p.classList.contains('bg-status-warning-bg') && !p.classList.contains('bg-status-negative-bg')) {
+          p.classList.remove('bg-secondary-container', 'text-on-surface');
+          p.classList.add('bg-surface-alt', 'text-text-secondary');
+        }
+      });
+      if (!pill.classList.contains('bg-status-warning-bg') && !pill.classList.contains('bg-status-negative-bg')) {
+        pill.classList.remove('bg-surface-alt', 'text-text-secondary');
+        pill.classList.add('bg-secondary-container', 'text-on-surface');
+      }
+    });
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-1px_12px_rgba(0,0,0,0.05)]" data-active-classes="bg-secondary-container text-on-surface font-semibold"><div class="h-16 px-space-xs flex items-center justify-around"><a class="flex-1 flex flex-col items-center justify-center h-12 rounded-lg mx-0.5 text-text-secondary transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="font-label-sm text-label-sm mt-0.5">Dashboard</span></a><a aria-current="page" class="flex-1 flex flex-col items-center justify-center h-12 rounded-lg mx-0.5 transition-all bg-secondary-container text-on-surface font-semibold" data-path="inventory" href="#"><span class="material-symbols-outlined text-[20px]">inventory</span><span class="font-label-sm text-label-sm mt-0.5">Inventory</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 rounded-lg mx-0.5 text-text-secondary transition-all" data-path="sales" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span class="font-label-sm text-label-sm mt-0.5">Sales</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 rounded-lg mx-0.5 text-text-secondary transition-all" data-path="analytics" href="#"><span class="material-symbols-outlined text-[20px]">insights</span><span class="font-label-sm text-label-sm mt-0.5">Analytics</span></a><a class="flex-1 flex flex-col items-center justify-center h-12 rounded-lg mx-0.5 text-text-secondary transition-all" data-path="more-menu" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-sm text-label-sm mt-0.5">More</span></a></div></nav></body></html>

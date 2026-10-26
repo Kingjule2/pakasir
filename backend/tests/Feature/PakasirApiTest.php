@@ -223,4 +223,65 @@ class PakasirApiTest extends TestCase
         $this->assertSame($before, \App\Models\AiMessage::count());
         $this->assertSame(0, (int) \Illuminate\Support\Facades\DB::table('subscription_usages')->sum('prompts_used'));
     }
+
+    public function test_inventory_soft_delete_recently_deleted_restore_and_purge(): void
+    {
+        $product = Product::first();
+        $initialActiveCount = $this->getJson('/api/inventory')->json('data.total_items');
+
+        // Soft delete product
+        $softDelete = $this->postJson("/api/inventory/{$product->id}/soft-delete", [
+            'reason' => 'Discontinued',
+            'hold_days' => 14,
+        ]);
+        $softDelete->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.deletedReason', 'Discontinued');
+
+        // Active inventory count decreases by 1
+        $this->assertEquals($initialActiveCount - 1, $this->getJson('/api/inventory')->json('data.total_items'));
+
+        // Recently deleted returns the product with retention metadata
+        $trash = $this->getJson('/api/inventory/recently-deleted');
+        $trash->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_items', 1)
+            ->assertJsonPath('data.items.0.id', $product->id)
+            ->assertJsonPath('data.items.0.deletedReason', 'Discontinued');
+
+        // Restore product back to active catalog
+        $restore = $this->postJson("/api/inventory/{$product->id}/restore");
+        $restore->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertEquals($initialActiveCount, $this->getJson('/api/inventory')->json('data.total_items'));
+        $this->assertEquals(0, $this->getJson('/api/inventory/recently-deleted')->json('data.total_items'));
+
+        // Soft delete again and force purge
+        $this->postJson("/api/inventory/{$product->id}/soft-delete", ['reason' => 'Expired']);
+        $purge = $this->postJson('/api/inventory/purge-expired', ['force' => true]);
+        $purge->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.purged_count', 1);
+    }
+
+    public function test_voice_transcribe_and_blueprint_memory_training(): void
+    {
+        $voice = $this->postJson('/api/voice-transcribe', [
+            'text' => 'Restock stok kritis sekarang',
+            'locale' => 'id-ID',
+        ]);
+        $voice->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.text', 'Restock stok kritis sekarang')
+            ->assertJsonPath('data.locale', 'id-ID');
+
+        $train = $this->postJson('/api/supri/train-memory', [
+            'category' => 'Aturan Bisnis',
+            'key' => 'Restock Margin',
+            'value' => 'Minimal margin 25%',
+            'weight' => 0.9,
+        ]);
+        $train->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.memory_type', 'business_rule');
+    }
 }

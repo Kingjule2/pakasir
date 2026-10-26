@@ -32,7 +32,7 @@ class _HelpViewState extends State<HelpView> {
     }).toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -51,7 +51,7 @@ class _HelpViewState extends State<HelpView> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.cardBorder),
@@ -59,8 +59,11 @@ class _HelpViewState extends State<HelpView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,16 +71,16 @@ class _HelpViewState extends State<HelpView> {
                         Text(
                           'Pertanyaan Umum (FAQ)',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Jawaban cepat untuk pertanyaan yang paling sering diajukan',
+                          'Jawaban cepat untuk pertanyaan yang sering diajukan',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: AppColors.textMuted,
                           ),
                         ),
@@ -85,14 +88,14 @@ class _HelpViewState extends State<HelpView> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _showCreateTicketDialog(context),
-                      icon: const Icon(Icons.support_agent_rounded, size: 15),
+                      icon: const Icon(Icons.support_agent_rounded, size: 14),
                       label: const Text('Buat Tiket Bantuan'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.cardDark,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
@@ -184,7 +187,7 @@ class _HelpViewState extends State<HelpView> {
 
   Widget _buildHeroBanner(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(18),
@@ -401,7 +404,7 @@ class _HelpViewState extends State<HelpView> {
 
   Widget _buildTicketsHistoryCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

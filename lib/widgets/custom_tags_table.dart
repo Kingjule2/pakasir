@@ -329,21 +329,15 @@ class CustomTagsTableCard extends StatelessWidget {
                       // Action
                       Expanded(
                         flex: 2,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: () => onDeleteItem(item.id),
-                              icon: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 16,
-                                color: Color(0xFFB0B7C3),
-                              ),
-                              tooltip: 'Delete item',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
+                        child: Center(
+                          child: InkWell(
+                            onTap: () => onDeleteItem(item.id),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: Color(0xFFB0B7C3),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],

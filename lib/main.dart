@@ -18,16 +18,16 @@ class VaultSaaSApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: AppColors.scaffoldBg,
+        scaffoldBackgroundColor: AppColors.appBg,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.cardDark,
-          primary: AppColors.cardDark,
-          secondary: AppColors.brandLime,
-          surface: AppColors.cardBg,
+          seedColor: AppColors.primaryNavy,
+          primary: AppColors.primaryNavy,
+          secondary: AppColors.accentSkyBlue,
+          surface: AppColors.surface,
         ),
-        fontFamily: 'Segoe UI',
+        fontFamily: 'Inter',
         dividerTheme: const DividerThemeData(
-          color: AppColors.divider,
+          color: AppColors.borderSubtle,
           thickness: 1,
         ),
       ),

@@ -12,26 +12,25 @@ class AppColors {
   static const Color supriPurple = Color(0xFF7047EB);
   static const Color supriCyan = Color(0xFF00C9A7);
 
-  // Dark Elements (Sidebar, Total Orders Card, Floating Tooltip)
-  static const Color sidebarBg = Color(0xFF131517);
-  static const Color sidebarItemHover = Color(0xFF1F2226);
-  static const Color cardDark = Color(0xFF181B1E);
-  static const Color tooltipDark = Color(0xFF16181B);
-  static const Color textOnDark = Color(0xFFFCFCFD);
-  static const Color textMutedOnDark = Color(0xFF7B8089);
+  // Brand & Dark Navy Elements (Sidebar, Header Brand, Buttons)
+  static const Color sidebarBg = Color(0xFF0F0F4A);
+  static const Color sidebarItemHover = Color(0xFF171764);
+  static const Color cardDark = Color(0xFF0F0F4A);
+  static const Color tooltipDark = Color(0xFF0F0F4A);
+  static const Color textOnDark = Color(0xFFFFFFFF);
+  static const Color textMutedOnDark = Color(0xFFB9D9FA);
 
-  // Light Elements (Main Background & Bento Cards)
-  static const Color scaffoldBg = Color(0xFFF4F5F8);
+  // Light Elements (Inventor Theme: Clean Surface & Off-white)
+  static const Color scaffoldBg = Color(0xFFFAFAFA);
   static const Color cardBg = Color(0xFFFFFFFF);
-  static const Color cardBorder = Color(0xFFEFEFEF);
-  static const Color divider = Color(0xFFE4E4E4);
+  static const Color cardBorder = Color(0xFFE5E7EB);
+  static const Color divider = Color(0xFFE5E7EB);
 
-  // Typography
-  static const Color textPrimary = Color(0xFF14171A);
-  static const Color textSecondary = Color(0xFF5B626A);
-  static const Color textMuted = Color(0xFF8F959E);
-  static const Color textLight = Color(0xFFB2B7C0);
-
+  // Typography (Stitch tokens: textPrimary #111827, textSecondary #6B7280, textMuted #9CA3AF)
+  static const Color textPrimary = Color(0xFF111827);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textMuted = Color(0xFF9CA3AF);
+  static const Color textLight = Color(0xFF9CA3AF);
   // Status & Priority Colors
   static const Color statusSuccess = Color(0xFF22C55E);
   static const Color statusSuccessBg = Color(0xFFE8F9EE);
@@ -47,4 +46,16 @@ class AppColors {
   static const Color chartGreen = Color(0xFF10B981);
   static const Color chartPink = Color(0xFFFF6E91);
   static const Color chartYellow = Color(0xFFFBBF24);
+
+  // Inventor Mobile Design System Tokens (Blueprint Section 3.1)
+  static const Color primaryNavy = Color(0xFF0F0F4A);
+  static const Color primaryNavyHover = Color(0xFF171764);
+  static const Color accentSkyBlue = Color(0xFFB9D9FA);
+  static const Color tableHeaderBg = Color(0xFFE8EEFB);
+  static const Color chartLine = Color(0xFF4A7FB0);
+  static const Color chartAreaFill = Color(0xFFEAF0FB);
+  static const Color appBg = Color(0xFFFAFAFA);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceAlt = Color(0xFFF7F7F8);
+  static const Color borderSubtle = Color(0xFFE5E7EB);
 }

@@ -27,6 +27,9 @@ class Product extends Model
         'image_asset',
         'is_out_of_stock',
         'is_active',
+        'deleted_at',
+        'delete_after',
+        'deleted_reason',
     ];
 
     protected $casts = [
@@ -36,6 +39,8 @@ class Product extends Model
         'stock_in' => 'integer',
         'is_out_of_stock' => 'boolean',
         'is_active' => 'boolean',
+        'deleted_at' => 'datetime',
+        'delete_after' => 'datetime',
     ];
 
     public function business(): BelongsTo
