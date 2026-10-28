@@ -262,4 +262,143 @@ class SupriAiController extends Controller
             ],
         ]);
     }
+
+    public function tts(Request $request)
+    {
+        $text = trim((string) $request->input('text', ''));
+        if ($text === '') {
+            return response()->json(['success' => false, 'message' => 'Parameter text wajib diisi.'], 400);
+        }
+
+        $preset = $request->input('preset', 'standar');
+        $rate = $request->input('rate', '+8%');
+        $pitch = $request->input('pitch', '+0Hz');
+        $voice = $request->input('voice', 'id-ID-ArdiNeural');
+
+        $ttsServiceUrl = config('services.edge_tts.url', 'http://127.0.0.1:8000/api/tts');
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::connectTimeout(1)->timeout(8)->get($ttsServiceUrl, [
+                'text' => $text,
+                'preset' => $preset,
+                'rate' => $rate,
+                'pitch' => $pitch,
+                'voice' => $voice,
+            ]);
+
+            if ($response->successful()) {
+                return response($response->body(), 200, [
+                    'Content-Type' => 'audio/mpeg',
+                    'Content-Disposition' => 'inline; filename="supri_speech.mp3"',
+                    'X-Supri-Voice' => $voice,
+                    'X-Supri-Rate' => $rate,
+                    'X-Supri-Pitch' => $pitch,
+                    'Cache-Control' => 'public, max-age=86400',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            // Microservice belum aktif atau timeout, lanjutkan ke fallback sintesis Python lokal
+        }
+
+        $directAudio = $this->synthesizeWithPython($text, $voice, $rate, $pitch, $preset);
+        if ($directAudio !== null && strlen($directAudio) > 100) {
+            return response($directAudio, 200, [
+                'Content-Type' => 'audio/mpeg',
+                'Content-Disposition' => 'inline; filename="supri_speech.mp3"',
+                'X-Supri-Voice' => $voice,
+                'X-Supri-Rate' => $rate,
+                'X-Supri-Pitch' => $pitch,
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Layanan Edge TTS lokal belum siap. Pastikan script scripts/supri_tts.py tersedia dan dependencies edge-tts terpasang.',
+            'direct_url' => "http://127.0.0.1:8000/api/tts?text=" . urlencode($text),
+        ], 503);
+    }
+
+    /**
+     * Fallback sintesis suara Ardi secara mandiri via Python CLI jika microservice FastAPI tidak aktif.
+     */
+    private function synthesizeWithPython(string $text, string $voice, string $rate, string $pitch, ?string $preset = null): ?string
+    {
+        $cacheDir = storage_path('app/tts_cache');
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+
+        $cacheKey = md5("{$voice}_{$rate}_{$pitch}_{$text}");
+        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
+
+        if (file_exists($cacheFile) && filesize($cacheFile) > 100) {
+            return file_get_contents($cacheFile);
+        }
+
+        $possiblePaths = [
+            base_path('../scripts/supri_tts.py'),
+            base_path('scripts/supri_tts.py'),
+            dirname(base_path()) . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'supri_tts.py',
+        ];
+
+        $scriptPath = null;
+        foreach ($possiblePaths as $p) {
+            if (file_exists($p)) {
+                $scriptPath = realpath($p);
+                break;
+            }
+        }
+
+        if (!$scriptPath) {
+            return null;
+        }
+
+        $cmd = [
+            'python',
+            $scriptPath,
+            '--stdin',
+            '--stdout',
+            '--voice',
+            $voice,
+            '--rate',
+            $rate,
+            '--pitch',
+            $pitch,
+        ];
+
+        if ($preset) {
+            $cmd[] = '--preset';
+            $cmd[] = $preset;
+        }
+
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = proc_open($cmd, $descriptors, $pipes);
+        if (!is_resource($process)) {
+            return null;
+        }
+
+        fwrite($pipes[0], $text);
+        fclose($pipes[0]);
+
+        $audio = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+
+        $err = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
+
+        $status = proc_close($process);
+
+        if ($status === 0 && !empty($audio) && strlen($audio) > 100) {
+            @file_put_contents($cacheFile, $audio);
+            return $audio;
+        }
+
+        return null;
+    }
 }

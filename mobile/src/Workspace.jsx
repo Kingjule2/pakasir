@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDownToLine, Bluetooth, BrainCircuit, HelpCircle, LockKeyhole, Mic, MicOff, Plus, Printer, RefreshCw, Search, Send, ShieldCheck, Sparkles, Volume2, Zap } from 'lucide-react';
-import { date, downloadFile, formatEscPosReceipt, number, query, request, useAction, useResource } from './api';
+import { date, downloadFile, formatEscPosReceipt, number, query, request, serverConfig, useAction, useResource } from './api';
 import { ActionNotice, Badge, Button, Card, Confirm, Empty, Field, Modal, Notice, RecordForm, Resource, SectionTitle } from './ui';
 
 export const ticketFields = [
@@ -323,28 +323,132 @@ export function Supri({ navigate }) {
   const action = useAction();
   const restockAction = useAction();
   const end = useRef(null);
+  const activeAudioRef = useRef(null);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [history.data]);
 
-  function speakIndonesian(text, onDone) {
+  function stopAllSpeech() {
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current.currentTime = 0;
+      activeAudioRef.current.src = '';
+      activeAudioRef.current = null;
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'id-ID';
-      utter.rate = 1.0;
-      utter.onend = () => onDone?.();
-      utter.onerror = () => onDone?.();
-      window.speechSynthesis.speak(utter);
-    } else {
-      setTimeout(() => onDone?.(), 700);
     }
   }
 
+  function speakIndonesian(text, onDone) {
+    stopAllSpeech();
+    if (!text || !text.trim()) {
+      onDone?.();
+      return;
+    }
+
+    // Bersihkan formatting markdown agar jeda dan intonasi alami
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^#+\s*/gm, '')
+      .replace(/^[-*•]\s*/gm, ' ')
+      .replace(/^\d+\.\s*/gm, ' ')
+      .replace(/[#*_~`|<>{}\[\]]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    let completed = false;
+    const finish = () => {
+      if (!completed) {
+        completed = true;
+        activeAudioRef.current = null;
+        onDone?.();
+      }
+    };
+
+    const fallbackSpeechSynthesis = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          const utter = new SpeechSynthesisUtterance(cleanText);
+          utter.lang = 'id-ID';
+          utter.rate = 1.0;
+          utter.pitch = 0.92;
+
+          const voices = window.speechSynthesis.getVoices();
+          const bestVoice = voices.find(v => {
+            const name = (v.name || '').toLowerCase();
+            const lang = (v.lang || '').toLowerCase();
+            return (lang.includes('id') || name.includes('indonesia')) &&
+              (name.includes('ardi') || name.includes('natural') || name.includes('male') || name.includes('pria'));
+          }) || voices.find(v => {
+            const name = (v.name || '').toLowerCase();
+            const lang = (v.lang || '').toLowerCase();
+            return lang.includes('id') || name.includes('indonesia');
+          });
+
+          if (bestVoice) {
+            utter.voice = bestVoice;
+          }
+
+          utter.onend = finish;
+          utter.onerror = finish;
+          window.speechSynthesis.speak(utter);
+        } catch {
+          finish();
+        }
+      } else {
+        setTimeout(finish, 600);
+      }
+    };
+
+    // Panggil Endpoint Edge TTS Ardi (id-ID-ArdiNeural, rate=+8%, pitch=+0Hz)
+    if (typeof window !== 'undefined' && typeof Audio !== 'undefined') {
+      const baseApi = (serverConfig.getBaseUrl() || '/api').replace(/\/+$/, '');
+      const queryParams = `text=${encodeURIComponent(cleanText)}&voice=id-ID-ArdiNeural&rate=%2B8%25&pitch=%2B0Hz&preset=standar`;
+      const candidateUrls = [
+        `${baseApi}/tts?${queryParams}`,
+        `http://127.0.0.1:8001/api/tts?${queryParams}`,
+        `http://127.0.0.1:8000/api/tts?${queryParams}`,
+      ];
+
+      let idx = 0;
+      const tryNext = () => {
+        if (idx < candidateUrls.length) {
+          const url = candidateUrls[idx++];
+          try {
+            const audio = new Audio(url);
+            activeAudioRef.current = audio;
+            audio.onended = finish;
+            audio.onerror = () => {
+              activeAudioRef.current = null;
+              tryNext();
+            };
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                activeAudioRef.current = null;
+                tryNext();
+              });
+            }
+          } catch {
+            tryNext();
+          }
+        } else {
+          fallbackSpeechSynthesis();
+        }
+      };
+      tryNext();
+    } else {
+      fallbackSpeechSynthesis();
+    }
+  }
   async function toggleVoiceSession() {
     if (voiceState !== 'Idle') {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopAllSpeech();
       setVoiceState('Idle');
       setLiveTranscript('');
       return;
@@ -397,6 +501,9 @@ export function Supri({ navigate }) {
         <Button variant={voiceState === 'Idle' ? 'primary' : 'danger'} onClick={toggleVoiceSession}>
           {voiceState === 'Idle' ? <><Mic size={17} /> Mulai Sesi Suara 2-Arah</> : <><MicOff size={17} /> Hentikan Suara ({voiceState})</>}
         </Button>
+        <Button variant="secondary" onClick={() => speakIndonesian('Halo Bos! Suara natural Ardi dari Microsoft Edge TTS sudah aktif dan siap membantu operasional toko.')}>
+          <Volume2 size={17} /> Tes Suara Ardi
+        </Button>
         <Button variant="secondary" onClick={() => setTraining(true)}><BrainCircuit size={17} /> Train Neural Memory</Button>
       </SectionTitle>
 
@@ -405,7 +512,7 @@ export function Supri({ navigate }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Volume2 size={24} style={{ color: '#D4E938' }} />
             <div>
-              <strong style={{ color: '#D4E938' }}>State Machine Suara: [{voiceState}]</strong>
+              <strong style={{ color: '#D4E938' }}>State Machine Suara: [{voiceState}] · Edge TTS (id-ID-ArdiNeural)</strong>
               <small style={{ display: 'block', color: '#D1D5DB' }}>{liveTranscript}</small>
             </div>
           </div>
@@ -420,7 +527,7 @@ export function Supri({ navigate }) {
           <div className="card-heading">
             <div className="assistant-identity">
               <span className="supri-avatar"><Sparkles size={25} /></span>
-              <div><h3>Supri AI Co-Pilot</h3><small>Voice STT/TTS id-ID & Neural Memory 6 Bulan</small></div>
+              <div><h3>Supri AI Co-Pilot</h3><small>Suara Natural Ardi (id-ID-ArdiNeural) · STT id-ID · Neural Memory 6 Bulan</small></div>
             </div>
             <Badge tone="lime">{voiceState === 'Idle' ? 'AI Ready' : `Voice: ${voiceState}`}</Badge>
           </div>
@@ -448,7 +555,7 @@ export function Supri({ navigate }) {
                           <Zap size={14} /> Restock Now (1-Klik)
                         </Button>
                         <Button type="button" variant="secondary" onClick={() => speakIndonesian(item.content)}>
-                          <Volume2 size={14} /> Putar Suara TTS
+                          <Volume2 size={14} /> Putar Suara (Edge TTS Ardi)
                         </Button>
                       </div>
                     )}

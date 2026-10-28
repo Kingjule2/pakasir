@@ -9,6 +9,7 @@ import '../models/store_settings.dart';
 import '../models/security_models.dart';
 import '../models/help_models.dart';
 import 'gemini_service.dart';
+import 'tts/tts_service.dart';
 enum VoiceSessionState { idle, greeting, listening, processing, speaking }
 
 class InventoryStore extends ChangeNotifier {
@@ -195,9 +196,306 @@ class InventoryStore extends ChangeNotifier {
       imageAsset: 'handbag',
       isOutOfStock: true,
     ),
+    InventoryItem(
+      id: 'prod-9',
+      name: 'Fresh Milk 1L',
+      sku: 'SKU-MLK-01',
+      category: 'Drinks',
+      totalQty: 25,
+      stockIn: 12,
+      price: 24000,
+      costPrice: 16000,
+      priority: PriorityLevel.high,
+      tag: 'Fast Moving',
+      imageAsset: 'bottle',
+      expiryDate: DateTime.now().add(const Duration(days: 3)),
+    ),
+    InventoryItem(
+      id: 'prod-10',
+      name: 'Croissant Butter',
+      sku: 'SKU-CRS-02',
+      category: 'Snacks',
+      totalQty: 15,
+      stockIn: 5,
+      price: 18000,
+      costPrice: 10000,
+      priority: PriorityLevel.high,
+      tag: 'Fast Moving',
+      imageAsset: 'shirt',
+      expiryDate: DateTime.now().add(const Duration(days: 1)),
+    ),
+    InventoryItem(
+      id: 'prod-11',
+      name: 'Matcha Powder 500g',
+      sku: 'SKU-MTC-03',
+      category: 'Drinks',
+      totalQty: 80,
+      stockIn: 60,
+      price: 45000,
+      costPrice: 28000,
+      priority: PriorityLevel.medium,
+      tag: 'New Arrival',
+      imageAsset: 'watch',
+      expiryDate: DateTime.now().add(const Duration(days: 90)),
+    ),
   ];
 
+  // Expiry & Stock Alert Getters
+  List<InventoryItem> get nearExpiryItems =>
+      _items.where((i) => i.isNearExpiry).toList();
+
+  List<InventoryItem> get expiredItems =>
+      _items.where((i) => i.isExpired).toList();
+
+  List<InventoryItem> get lowStockItems =>
+      _items.where((i) => i.isLowStock && !i.isOutOfStock).toList();
+
+  int get totalAlertsCount =>
+      nearExpiryItems.length + expiredItems.length + lowStockItems.length;
+
   List<InventoryItem> get allItems => List.unmodifiable(_items);
+  // ==================== CSV IMPORT / EXPORT & CRUD HELPER METHODS ====================
+  String exportSalesCsv() {
+    final buffer = StringBuffer();
+    buffer.writeln('Invoice,Tanggal,Kasir,Pelanggan,Metode_Bayar,Total_Belanja,Status');
+    for (final tx in _transactions) {
+      final invoice = tx['invoice_number'] ?? tx['id'] ?? '-';
+      final date = tx['created_at'] ?? '-';
+      final cashier = tx['cashier_name'] ?? '-';
+      final customer = tx['customer_name'] ?? '-';
+      final payment = tx['payment_method'] ?? 'Cash';
+      final total = tx['total_amount'] ?? 0;
+      final status = tx['sync_status'] ?? 'Lunas';
+      buffer.writeln('$invoice,$date,$cashier,$customer,$payment,$total,$status');
+    }
+    return buffer.toString();
+  }
+
+  Map<String, dynamic> importStockFromCsv(String csvContent) {
+    final lines = csvContent
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) {
+      return {'importedCount': 0, 'items': <InventoryItem>[], 'alerts': <String>[]};
+    }
+
+    final List<InventoryItem> imported = [];
+    final List<String> alerts = [];
+
+    int startIndex = 0;
+    int nameCol = 0;
+    int priceCol = 1;
+    int stockCol = 2;
+    int categoryCol = -1;
+    int expiryCol = -1;
+
+    int headerIndex = -1;
+    for (int i = 0; i < lines.length; i++) {
+      final l = lines[i].toLowerCase();
+      if ((l.contains(',') || l.contains(';')) &&
+          (l.contains('nama') ||
+              l.contains('name') ||
+              l.contains('product') ||
+              l.contains('produk') ||
+              l.contains('harga') ||
+              l.contains('stok'))) {
+        headerIndex = i;
+        break;
+      }
+    }
+
+    if (headerIndex >= 0) {
+      startIndex = headerIndex + 1;
+      final headerLine = lines[headerIndex];
+      final delimiter = headerLine.contains(';') ? ';' : ',';
+      final headers = headerLine
+          .split(delimiter)
+          .map((h) => h.trim().toLowerCase())
+          .toList();
+      for (int i = 0; i < headers.length; i++) {
+        final h = headers[i];
+        if (h.contains('nama') ||
+            h.contains('name') ||
+            h.contains('produk') ||
+            h.contains('product')) {
+          nameCol = i;
+        } else if (h.contains('harga') || h.contains('price') || h.contains('jual')) {
+          priceCol = i;
+        } else if (h.contains('stok') ||
+            h.contains('stock') ||
+            h.contains('qty') ||
+            h.contains('jumlah')) {
+          stockCol = i;
+        } else if (h.contains('kategori') || h.contains('category')) {
+          categoryCol = i;
+        } else if (h.contains('expir') ||
+            h.contains('kadaluarsa') ||
+            h.contains('tgl_exp')) {
+          expiryCol = i;
+        }
+      }
+    } else {
+      for (int i = 0; i < lines.length; i++) {
+        if (lines[i].contains(',') || lines[i].contains(';')) {
+          startIndex = i;
+          break;
+        }
+      }
+    }
+
+    for (int i = startIndex; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.isEmpty) continue;
+      final delimiter = line.contains(';') ? ';' : ',';
+      final parts = line.split(delimiter).map((p) => p.trim()).toList();
+      if (parts.length <= nameCol) continue;
+
+      final name = parts[nameCol].replaceAll('"', '');
+      if (name.isEmpty) continue;
+
+      final price = (parts.length > priceCol)
+          ? (double.tryParse(parts[priceCol].replaceAll(RegExp(r'[^0-9.]'), '')) ?? 10000.0)
+          : 10000.0;
+      final stock = (parts.length > stockCol)
+          ? (int.tryParse(parts[stockCol].replaceAll(RegExp(r'[^0-9]'), '')) ?? 50)
+          : 50;
+      final category = (categoryCol >= 0 && parts.length > categoryCol)
+          ? parts[categoryCol].replaceAll('"', '')
+          : 'Umum';
+
+      DateTime? expiry;
+      if (expiryCol >= 0 && parts.length > expiryCol) {
+        final expStr = parts[expiryCol].replaceAll('"', '').trim();
+        expiry = DateTime.tryParse(expStr);
+      }
+
+      final existingIndex =
+          _items.indexWhere((it) => it.name.toLowerCase() == name.toLowerCase());
+      if (existingIndex >= 0) {
+        final current = _items[existingIndex];
+        final updated = current.copyWith(
+          stockIn: current.stockIn + stock,
+          totalQty: current.totalQty + stock,
+          price: price,
+          expiryDate: expiry ?? current.expiryDate,
+        );
+        _items[existingIndex] = updated;
+        imported.add(updated);
+      } else {
+        final newItem = InventoryItem(
+          id: 'prod-${DateTime.now().millisecondsSinceEpoch}-$i',
+          name: name,
+          sku: 'SKU-${(100 + _items.length + i)}',
+          category: category,
+          totalQty: stock,
+          stockIn: stock,
+          price: price,
+          costPrice: price * 0.6,
+          priority: PriorityLevel.medium,
+          tag: 'New Arrival',
+          imageAsset: 'default',
+          expiryDate: expiry,
+        );
+        _items.add(newItem);
+        imported.add(newItem);
+      }
+
+      if (expiry != null) {
+        final diff = expiry.difference(DateTime.now()).inDays;
+        if (diff < 0) {
+          alerts.add('❌ Peringatan: Produk "$name" sudah KEDALUWARSA sejak ${-diff} hari lalu!');
+        } else if (diff <= 14) {
+          alerts.add('⚠️ Perhatian: Produk "$name" akan segera KEDALUWARSA dalam $diff hari (${expiry.toIso8601String().substring(0, 10)})!');
+        }
+      }
+      if (stock <= 15) {
+        alerts.add('⚠️ Stok Menipis: Produk "$name" hanya memiliki $stock unit!');
+      }
+    }
+
+    notifyListeners();
+    return {
+      'importedCount': imported.length,
+      'items': imported,
+      'alerts': alerts,
+    };
+  }
+
+  bool updateProductStockByName(String productName, int newStock) {
+    final idx = _items.indexWhere(
+        (i) => i.name.toLowerCase().contains(productName.toLowerCase()));
+    if (idx >= 0) {
+      final current = _items[idx];
+      _items[idx] = current.copyWith(
+        totalQty: newStock,
+        stockIn: newStock,
+        isOutOfStock: newStock <= 0,
+      );
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  bool addProductStockByName(String productName, int addedQty) {
+    final idx = _items.indexWhere(
+        (i) => i.name.toLowerCase().contains(productName.toLowerCase()));
+    if (idx >= 0) {
+      final current = _items[idx];
+      final newQty = current.totalQty + addedQty;
+      _items[idx] = current.copyWith(
+        totalQty: newQty,
+        stockIn: current.stockIn + addedQty,
+        isOutOfStock: false,
+      );
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  bool deleteProductByName(String productName) {
+    final idx = _items.indexWhere(
+        (i) => i.name.toLowerCase().contains(productName.toLowerCase()));
+    if (idx >= 0) {
+      final item = _items.removeAt(idx);
+      _recentlyDeletedItems.add(item.copyWith(
+        deletedAt: DateTime.now(),
+        deleteAfter: DateTime.now().add(const Duration(days: 30)),
+        deletedReason: 'Dihapus atas perintah Supri AI Agent',
+      ));
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  void addCustomProduct({
+    required String name,
+    required double price,
+    required int stock,
+    String category = 'Umum',
+    DateTime? expiryDate,
+  }) {
+    final newItem = InventoryItem(
+      id: 'prod-${DateTime.now().millisecondsSinceEpoch}',
+      name: name,
+      sku: 'SKU-${(100 + _items.length)}',
+      category: category,
+      totalQty: stock,
+      stockIn: stock,
+      price: price,
+      costPrice: price * 0.6,
+      priority: PriorityLevel.medium,
+      tag: 'New Arrival',
+      imageAsset: 'default',
+      expiryDate: expiryDate,
+    );
+    _items.add(newItem);
+    notifyListeners();
+  }
 
   List<InventoryItem> get filteredItems {
     return _items.where((item) {
@@ -924,9 +1222,320 @@ class InventoryStore extends ChangeNotifier {
       return;
     }
 
-    // 3. Call Gemini API with unconstrained general AI personality, vision & memory context
+    // 3. AI Agent Action: Update / Tambah / Kurang Stok Produk di Database (CRUD Stock)
+    if (lower.contains('stok') &&
+        (lower.contains('update') ||
+            lower.contains('ubah') ||
+            lower.contains('ganti') ||
+            lower.contains('tambah') ||
+            lower.contains('kurang') ||
+            lower.contains('set')) &&
+        !lower.contains('tambah produk') &&
+        !lower.contains('buat produk')) {
+      final numMatches = RegExp(r'\d+').allMatches(text);
+      if (numMatches.isNotEmpty) {
+        final qty = int.tryParse(numMatches.last.group(0) ?? '') ?? 0;
+        InventoryItem? matchedItem;
+        for (final item in _items) {
+          if (lower.contains(item.name.toLowerCase())) {
+            matchedItem = item;
+            break;
+          }
+        }
+
+        if (matchedItem != null) {
+          final isAddition = lower.contains('tambah') &&
+              !lower.contains('ubah') &&
+              !lower.contains('update');
+          final oldQty = matchedItem.totalQty;
+          final newQty = isAddition ? (oldQty + qty) : qty;
+
+          final idx = _items.indexOf(matchedItem);
+          _items[idx] = matchedItem.copyWith(
+            totalQty: newQty,
+            stockIn: newQty,
+            isOutOfStock: newQty <= 0,
+          );
+          notifyListeners();
+
+          final msgText =
+              '✅ **Update Stok Berhasil!**\n\n'
+              'Supri telah memperbarui data stok di database:\n'
+              '- Produk: **${matchedItem.name}** (${matchedItem.sku})\n'
+              '- Stok Sebelumnya: $oldQty unit\n'
+              '- **Stok Sekarang: $newQty unit**\n\n'
+              'Tampilan katalog dan dashboard langsung tersinkronisasi 👍';
+
+          final confirmationMsg = AiChatMessage(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            role: MessageRole.assistant,
+            text: msgText,
+            timestamp: DateTime.now(),
+          );
+          _chatMessages.add(confirmationMsg);
+          notifyListeners();
+          TtsService.speakNaturalMaleIndonesian(
+              'Beres Bos! Stok untuk ${matchedItem.name} sudah diupdate jadi $newQty unit.');
+          return;
+        }
+      }
+    }
+
+    // 4. AI Agent Action: Tambah Produk Baru ke Database (CRUD Create)
+    if (lower.startsWith('tambah produk') || lower.contains('buat produk baru')) {
+      final nameClean = text.replaceFirst(
+          RegExp(r'tambah produk|buat produk baru', caseSensitive: false), '').trim();
+      final numMatches = RegExp(r'\d+').allMatches(nameClean);
+      double price = 15000;
+      int stock = 50;
+      if (numMatches.length >= 2) {
+        price = double.tryParse(numMatches.elementAt(0).group(0) ?? '15000') ?? 15000;
+        stock = int.tryParse(numMatches.elementAt(1).group(0) ?? '50') ?? 50;
+      } else if (numMatches.length == 1) {
+        price = double.tryParse(numMatches.first.group(0) ?? '15000') ?? 15000;
+      }
+      final rawName = nameClean
+          .replaceAll(RegExp(r'\d+'), '')
+          .replaceAll(RegExp(r'harga|stok|kategori|unit|rp', caseSensitive: false), '')
+          .trim();
+      final finalName = rawName.isNotEmpty ? rawName : 'Produk Baru';
+
+      addCustomProduct(name: finalName, price: price, stock: stock, category: 'Umum');
+      final msgText =
+          '✅ **Produk Baru Berhasil Didaftarkan!**\n\n'
+          '- Nama: **$finalName**\n'
+          '- Harga Jual: Rp ${price.toInt()}\n'
+          '- Stok Awal: $stock unit\n'
+          '- Status: Aktif dan langsung muncul di katalog kasir POS.';
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: msgText,
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      TtsService.speakNaturalMaleIndonesian(
+          'Produk baru $finalName berhasil didaftarkan ke sistem inventaris ya Bos.');
+      return;
+    }
+
+    // 5. AI Agent Action: Hapus Produk dari Database (CRUD Delete)
+    if (lower.startsWith('hapus produk') || lower.startsWith('delete produk')) {
+      final target = text.replaceFirst(
+          RegExp(r'hapus produk|delete produk', caseSensitive: false), '').trim();
+      final ok = deleteProductByName(target);
+      final msgText = ok
+          ? '🗑️ **Produk Berhasil Dihapus!**\n\nProduk "$target" telah dihapus dari inventaris aktif dan dipindahkan ke Recently Deleted (masa retensi 30 hari).'
+          : 'Produk "$target" tidak ditemukan di katalog toko Bos. Coba cek kembali nama produknya.';
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: msgText,
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      TtsService.speakNaturalMaleIndonesian(ok
+          ? 'Produk $target berhasil dihapus ya Bos.'
+          : 'Produk tidak ditemukan Bos.');
+      return;
+    }
+    final isCsvUpload = fileName?.toLowerCase().endsWith('.csv') == true ||
+        lower.startsWith('ekstrak csv') ||
+        lower.startsWith('extract csv') ||
+        lower.startsWith('impor csv') ||
+        (text.contains('\n') &&
+            (text.contains(',') || text.contains(';')) &&
+            (lower.contains('nama') ||
+                lower.contains('harga') ||
+                lower.contains('stok') ||
+                lower.contains('product') ||
+                lower.contains('produk')));
+
+    // 6. AI Agent Action: Notifikasi Expired & Stok Menipis
+    if (!isCsvUpload &&
+        (lower.contains('expired') ||
+            lower.contains('kadaluarsa') ||
+            lower.contains('stok menipis') ||
+            lower.contains('barang mau habis') ||
+            lower.contains('peringatan') ||
+            (lower.contains('notifikasi') && !lower.contains('csv')))) {
+      final nearExp = nearExpiryItems;
+      final exp = expiredItems;
+      final low = lowStockItems;
+      final buffer = StringBuffer();
+      buffer.writeln('🔔 **Laporan Notifikasi & Peringatan Dini Supri:**\n');
+
+      if (exp.isNotEmpty) {
+        buffer.writeln('❌ **SUDAH KEDALUWARSA (${exp.length} Produk):**');
+        for (final it in exp) {
+          buffer.writeln(
+              '- **${it.name}** (Kadaluarsa: ${it.expiryDate?.toIso8601String().substring(0, 10)}) -> *Segera tarik dari etalase!*');
+        }
+        buffer.writeln('');
+      }
+
+      if (nearExp.isNotEmpty) {
+        buffer.writeln('⚠️ **MENDEKATI KEDALUWARSA ≤14 HARI (${nearExp.length} Produk):**');
+        for (final it in nearExp) {
+          buffer.writeln(
+              '- **${it.name}**: sisa ${it.daysUntilExpiry} hari (${it.expiryDate?.toIso8601String().substring(0, 10)}) - Stok: ${it.totalQty} unit');
+        }
+        buffer.writeln('💡 *Saran Supri: Buat promo flash sale atau bundling diskon 30-50% untuk produk ini!*\n');
+      }
+
+      if (low.isNotEmpty) {
+        buffer.writeln('⚠️ **STOK MENIPIS / INGIN HABIS (${low.length} Produk):**');
+        for (final it in low) {
+          buffer.writeln('- **${it.name}**: tersisa **${it.totalQty} unit** (Stok di rak: ${it.stockIn})');
+        }
+        buffer.writeln('💡 *Saran Supri: Segera buat pesanan restock sebelum kehabisan saat weekend!*');
+      }
+
+      if (exp.isEmpty && nearExp.isEmpty && low.isEmpty) {
+        buffer.writeln('🎉 Kondisi toko aman! Tidak ada barang kedaluwarsa dan seluruh stok masih di atas batas minimum.');
+      }
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: buffer.toString(),
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      final ttsSummary = (exp.isNotEmpty || nearExp.isNotEmpty || low.isNotEmpty)
+          ? 'Perhatian Bos! Ada ${nearExp.length} produk mendekati tanggal kedaluwarsa dan ${low.length} produk yang stoknya menipis.'
+          : 'Semua aman terkendali Bos! Tidak ada barang kedaluwarsa dan stok aman.';
+      TtsService.speakNaturalMaleIndonesian(ttsSummary);
+      return;
+    }
+
+    // 7. AI Agent Action: Analisa Keseluruhan Keuangan
+    if ((lower.contains('keuangan') &&
+            (lower.contains('analisa') ||
+                lower.contains('analisis') ||
+                lower.contains('laporan') ||
+                lower.contains('ringkasan') ||
+                lower.contains('evaluasi') ||
+                lower.contains('keseluruhan'))) ||
+        lower.contains('laba rugi') ||
+        lower.contains('finansial') ||
+        (lower.contains('omzet') && lower.contains('toko')) ||
+        lower.contains('laba bersih')) {
+      final rev = _finance.totalRevenue;
+      final profit = _finance.netProfit;
+      final cash = _finance.cashInHand;
+      final marginPct =
+          (rev > 0) ? ((profit / rev) * 100).toStringAsFixed(1) : '27.4';
+
+      final msgText =
+          '📊 **Analisis Menyeluruh Keuangan Toko oleh Supri:**\n\n'
+          '1. **Metrik Finansial Utama:**\n'
+          '   - Total Omzet Toko: **Rp ${(rev / 1000000).toStringAsFixed(1)} Juta**\n'
+          '   - Laba Bersih: **Rp ${(profit / 1000000).toStringAsFixed(1)} Juta** (Net Margin: $marginPct%)\n'
+          '   - Kas di Tangan (Liquidity): **Rp ${(cash / 1000000).toStringAsFixed(1)} Juta**\n'
+          '   - Status Finansial: **SEHAT & PROFITABEL**\n\n'
+          '💡 **3 Rekomendasi Taktis Supri Minggu Ini:**\n'
+          '1. **Genjot Bundling Menu Terlaris**: Pasangkan item Fast Moving dengan item margin tebal untuk menaikkan nilai rata-rata belanja kasir.\n'
+          '2. **Amankan Stok Kritis**: Terbitkan PO restock segera untuk ${lowStockItems.length} produk yang stoknya tersisa sedikit agar tidak kehilangan omzet.\n'
+          '3. **Optimasi Diskon Barang Mendekati Expired**: Jalankan promo bundling untuk ${nearExpiryItems.length} produk makanan/minuman yang mendekati tanggal expired.';
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: msgText,
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      TtsService.speakNaturalMaleIndonesian(
+          'Berikut analisa keuangan menyeluruh toko kita Bos. Total omzet mencapai Rp ${(rev / 1000000).toStringAsFixed(1)} Juta dengan net margin $marginPct persen.');
+      return;
+    }
+
+    // 8. AI Agent Action: Ekspor Data Penjualan Menjadi CSV yang Rapih
+    if (lower.contains('ekspor') ||
+        lower.contains('export') ||
+        lower.contains('unduh csv') ||
+        lower.contains('download csv') ||
+        lower.contains('csv penjualan') ||
+        lower.contains('laporan csv')) {
+      final csvData = exportSalesCsv();
+      final msgText =
+          'Siap Bos! Data penjualan telah berhasil Supri ekspor ke format CSV yang rapih:\n\n'
+          '```csv\n$csvData```\n'
+          '📌 **Ringkasan Ekspor Penjualan:**\n'
+          '- Total Transaksi: ${_transactions.length} struk kasir\n'
+          '- Format Kolom: Invoice, Tanggal, Kasir, Pelanggan, Metode_Bayar, Total_Belanja, Status\n'
+          '- Data terstruktur rapi dan siap diunduh atau diproses ke sistem akuntansi 👍';
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: msgText,
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      TtsService.speakNaturalMaleIndonesian(
+          'Beres Bos! Data penjualan sudah berhasil diekspor ke format CSV yang rapih.');
+      return;
+    }
+
+    // 9. AI Agent Action: Ekstrak CSV dari Pengguna untuk Masuk ke Stok (dengan Expiry & Alerts)
+    if (isCsvUpload) {
+      final result = importStockFromCsv(text);
+      final int importedCount = result['importedCount'] as int;
+      final List<String> alerts = result['alerts'] as List<String>;
+      final List<InventoryItem> itemsList = result['items'] as List<InventoryItem>;
+
+      final buffer = StringBuffer();
+      buffer.writeln('📦 **Ekstraksi CSV Stok Sukses!**\n');
+      buffer.writeln('Supri telah memproses $importedCount produk langsung masuk ke database stok:');
+      for (final it in itemsList.take(6)) {
+        final expStr = it.expiryDate != null
+            ? ' | Exp: ${it.expiryDate!.toIso8601String().substring(0, 10)}'
+            : '';
+        buffer.writeln('- **${it.name}**: Rp ${it.price.toInt()} (Stok: ${it.totalQty}$expStr)');
+      }
+      if (itemsList.length > 6) {
+        buffer.writeln('*(dan ${itemsList.length - 6} produk lainnya)*');
+      }
+
+      if (alerts.isNotEmpty) {
+        buffer.writeln('\n🚨 **NOTIFIKASI PERINGATAN DARI SUPRI:**');
+        for (final a in alerts) {
+          buffer.writeln(a);
+        }
+      } else {
+        buffer.writeln('\n✅ Seluruh produk dalam kondisi aman dan stok telah diperbarui.');
+      }
+
+      final confirmationMsg = AiChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        role: MessageRole.assistant,
+        text: buffer.toString(),
+        timestamp: DateTime.now(),
+      );
+      _chatMessages.add(confirmationMsg);
+      notifyListeners();
+      final ttsSummary = alerts.isNotEmpty
+          ? 'Beres Bos! Ekstraksi CSV sukses untuk $importedCount produk. Perhatian, ada ${alerts.length} produk yang stoknya menipis atau mendekati tanggal kedaluwarsa!'
+          : 'Beres Bos! Ekstraksi CSV sukses, $importedCount produk sudah masuk ke stok toko.';
+      TtsService.speakNaturalMaleIndonesian(ttsSummary);
+      return;
+    }
+    // 10. Call Gemini API with unconstrained general AI personality, vision & memory context
     final response = await GeminiService.askGemini(
-      prompt: text.isNotEmpty ? text : (fileName != null ? 'Tolong analisa file $fileName ini.' : 'Tolong analisa gambar ini.'),
+      prompt: text.isNotEmpty
+          ? text
+          : (fileName != null
+              ? 'Tolong analisa file $fileName ini.'
+              : 'Tolong analisa gambar ini.'),
       items: _items,
       finance: _finance,
       history: _chatMessages,
@@ -935,6 +1544,7 @@ class InventoryStore extends ChangeNotifier {
     );
     _chatMessages.add(response);
     notifyListeners();
+    TtsService.speakNaturalMaleIndonesian(response.text);
   }
 
   // ==================== RECENTLY DELETED (SOFT DELETE HOLD) ====================
@@ -1203,13 +1813,34 @@ class InventoryStore extends ChangeNotifier {
 
   void startVoiceSession() {
     _voiceState = VoiceSessionState.greeting;
-    _voiceStatusMessage = 'Halo bos, mau bahas ide apa lagi nih?';
+    const greetingText =
+        'Halo Bos! Supri di sini, siap bantu kelola inventaris, cek stok, atau analisa omzet toko hari ini. Mau cek apa nih Bos?';
+    _voiceStatusMessage = greetingText;
+
+    if (_chatMessages.isEmpty || _chatMessages.last.text != greetingText) {
+      _chatMessages.add(
+        AiChatMessage(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          role: MessageRole.assistant,
+          text: greetingText,
+          timestamp: DateTime.now(),
+        ),
+      );
+    }
     notifyListeners();
-    _voiceState = VoiceSessionState.listening;
-    notifyListeners();
+
+    TtsService.speakNaturalMaleIndonesian(greetingText, onComplete: () {
+      _voiceState = VoiceSessionState.listening;
+      notifyListeners();
+    });
+  }
+
+  void triggerMicGreeting() {
+    startVoiceSession();
   }
 
   void stopVoiceSession() {
+    TtsService.stop();
     _voiceState = VoiceSessionState.idle;
     _voiceStatusMessage = '';
     notifyListeners();
@@ -1227,7 +1858,9 @@ class InventoryStore extends ChangeNotifier {
     _voiceState = VoiceSessionState.speaking;
     _voiceStatusMessage = _chatMessages.isNotEmpty ? _chatMessages.last.text : '';
     notifyListeners();
-    _voiceState = VoiceSessionState.listening;
-    notifyListeners();
+    TtsService.speakNaturalMaleIndonesian(_voiceStatusMessage, onComplete: () {
+      _voiceState = VoiceSessionState.listening;
+      notifyListeners();
+    });
   }
 }

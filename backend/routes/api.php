@@ -24,6 +24,9 @@ Route::get('/health', function () {
     ]);
 });
 
+// Supri AI Edge TTS Voice Stream (Public Audio Access)
+Route::get('/tts', [SupriAiController::class, 'tts']);
+
 // 1. Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
@@ -118,5 +121,6 @@ Route::prefix('supri')->group(function () {
     Route::get('/memories', [SupriAiController::class, 'memories']);
     Route::post('/train-memory', [SupriAiController::class, 'trainMemory']);
     Route::get('/sales-analysis', [SupriAiController::class, 'salesAnalysis']);
+    Route::get('/tts', [SupriAiController::class, 'tts']);
 });
 });

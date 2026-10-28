@@ -284,4 +284,53 @@ class PakasirApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.memory_type', 'business_rule');
     }
+
+    public function test_tts_voice_endpoint_validation_and_proxy(): void
+    {
+        $empty = $this->getJson('/api/tts');
+        $empty->assertStatus(400)->assertJsonPath('success', false);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'http://127.0.0.1:8000/api/tts*' => \Illuminate\Support\Facades\Http::response('fake-mp3-audio-content', 200, [
+                'Content-Type' => 'audio/mpeg',
+                'X-Supri-Voice' => 'id-ID-ArdiNeural',
+                'X-Supri-Rate' => '+8%',
+                'X-Supri-Pitch' => '+0Hz',
+            ]),
+        ]);
+
+        $res = $this->get('/api/tts?text=Halo+bos');
+        $res->assertStatus(200)
+            ->assertHeader('Content-Type', 'audio/mpeg')
+            ->assertHeader('X-Supri-Voice', 'id-ID-ArdiNeural')
+            ->assertHeader('X-Supri-Rate', '+8%')
+            ->assertHeader('X-Supri-Pitch', '+0Hz');
+        $this->assertEquals('fake-mp3-audio-content', $res->getContent());
+    }
+
+    public function test_tts_voice_endpoint_cache_and_fallback(): void
+    {
+        $cacheDir = storage_path('app/tts_cache');
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        $voice = 'id-ID-ArdiNeural';
+        $rate = '+8%';
+        $pitch = '+0Hz';
+        $text = 'Tes Cache Audio Ardi';
+        $cacheKey = md5("{$voice}_{$rate}_{$pitch}_{$text}");
+        $cacheFile = $cacheDir . DIRECTORY_SEPARATOR . $cacheKey . '.mp3';
+        file_put_contents($cacheFile, str_repeat('audiomp3cachedata', 20));
+
+        try {
+            $res = $this->get('/api/tts?text=' . urlencode($text));
+            $res->assertStatus(200)
+                ->assertHeader('Content-Type', 'audio/mpeg')
+                ->assertHeader('X-Supri-Voice', 'id-ID-ArdiNeural')
+                ->assertHeader('Cache-Control', 'max-age=86400, public');
+            $this->assertEquals(str_repeat('audiomp3cachedata', 20), $res->getContent());
+        } finally {
+            @unlink($cacheFile);
+        }
+    }
 }

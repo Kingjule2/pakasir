@@ -1,0 +1,64 @@
+tanggal,kategori,jumlah,is_synthetic
+2025-01-01,Sewa Tempat,24535505,True
+2025-01-05,Internet & Software,1025551,True
+2025-01-10,Listrik & Air,4716400,True
+2025-01-15,Marketing & Iklan,2779427,True
+2025-01-18,Packaging & Perlengkapan,4259616,True
+2025-01-22,Maintenance & Reparasi,703134,True
+2025-01-25,Gaji Karyawan,22095824,True
+2025-02-01,Sewa Tempat,28184208,True
+2025-02-05,Internet & Software,1060591,True
+2025-02-10,Listrik & Air,3931848,True
+2025-02-15,Marketing & Iklan,3756120,True
+2025-02-18,Packaging & Perlengkapan,4050779,True
+2025-02-22,Maintenance & Reparasi,1513367,True
+2025-02-28,Gaji Karyawan,19805878,True
+2025-03-01,Sewa Tempat,28304863,True
+2025-03-05,Internet & Software,901245,True
+2025-03-10,Listrik & Air,4518517,True
+2025-03-15,Marketing & Iklan,3511546,True
+2025-03-18,Packaging & Perlengkapan,3565656,True
+2025-03-22,Maintenance & Reparasi,1200422,True
+2025-03-25,Gaji Karyawan,22144257,True
+2025-04-01,Sewa Tempat,26224788,True
+2025-04-05,Internet & Software,1162626,True
+2025-04-10,Listrik & Air,5097470,True
+2025-04-15,Marketing & Iklan,3158957,True
+2025-04-18,Packaging & Perlengkapan,3484104,True
+2025-04-22,Maintenance & Reparasi,1587313,True
+2025-04-25,Gaji Karyawan,19730198,True
+2025-05-01,Sewa Tempat,27272574,True
+2025-05-05,Internet & Software,940895,True
+2025-05-10,Listrik & Air,4430643,True
+2025-05-15,Marketing & Iklan,2165844,True
+2025-05-18,Packaging & Perlengkapan,3742794,True
+2025-05-22,Maintenance & Reparasi,1665467,True
+2025-05-25,Gaji Karyawan,20773656,True
+2025-06-01,Sewa Tempat,24382903,True
+2025-06-05,Internet & Software,960703,True
+2025-06-10,Listrik & Air,4958683,True
+2025-06-15,Marketing & Iklan,3136995,True
+2025-06-18,Packaging & Perlengkapan,3080889,True
+2025-06-22,Maintenance & Reparasi,1509705,True
+2025-06-25,Gaji Karyawan,22433165,True
+2025-07-01,Sewa Tempat,28203137,True
+2025-07-05,Internet & Software,1238279,True
+2025-07-10,Listrik & Air,3895088,True
+2025-07-15,Marketing & Iklan,2802237,True
+2025-07-18,Packaging & Perlengkapan,4318305,True
+2025-07-22,Maintenance & Reparasi,1413502,True
+2025-07-25,Gaji Karyawan,20418103,True
+2025-08-01,Sewa Tempat,28670300,True
+2025-08-05,Internet & Software,995562,True
+2025-08-10,Listrik & Air,4072494,True
+2025-08-15,Marketing & Iklan,2840097,True
+2025-08-18,Packaging & Perlengkapan,3646245,True
+2025-08-22,Maintenance & Reparasi,652564,True
+2025-08-25,Gaji Karyawan,22039597,True
+2025-09-01,Sewa Tempat,27279417,True
+2025-09-05,Internet & Software,1123219,True
+2025-09-10,Listrik & Air,4840726,True
+2025-09-15,Marketing & Iklan,3660550,True
+2025-09-18,Packaging & Perlengkapan,4066095,True
+2025-09-22,Maintenance & Reparasi,1039971,True
+2025-09-25,Gaji Karyawan,19617157,True

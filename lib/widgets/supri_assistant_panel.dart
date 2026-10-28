@@ -4,7 +4,7 @@ import '../models/ai_chat_message.dart';
 import '../models/inventory_item.dart';
 import '../theme/app_colors.dart';
 import 'neural_memory_dialog.dart';
-
+import '../services/tts/tts_service.dart';
 class SupriAssistantPanel extends StatefulWidget {
   final List<AiChatMessage> messages;
   final ValueChanged<String> onSendMessage;
@@ -35,9 +35,33 @@ class _SupriAssistantPanelState extends State<SupriAssistantPanel>
   String? _attachedFileName;
   String? _attachedImageBase64;
   bool _isThinking = false;
+  bool _isMicActive = false;
   late AnimationController _gearController;
   late Animation<double> _gearAnimation;
 
+  void _handleMicPressed() {
+    setState(() {
+      _isMicActive = !_isMicActive;
+    });
+
+    if (!_isMicActive) {
+      TtsService.stop();
+      return;
+    }
+
+    const greeting =
+        'Halo Bos! Supri di sini, siap bantu kelola inventaris, cek stok, atau analisa omzet toko hari ini. Mau cek apa nih Bos?';
+
+    widget.onSendMessage('Halo Supri!');
+
+    TtsService.speakNaturalMaleIndonesian(greeting, onComplete: () {
+      if (mounted) {
+        setState(() {
+          _isMicActive = false;
+        });
+      }
+    });
+  }
   @override
   void initState() {
     super.initState();
@@ -389,6 +413,32 @@ class _SupriAssistantPanelState extends State<SupriAssistantPanel>
                             height: 1.4,
                           ),
                         ),
+                      if (isAssistant && msg.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: InkWell(
+                            onTap: () => TtsService.speakNaturalMaleIndonesian(msg.text),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.volume_up_rounded, size: 13, color: AppColors.supriOrange),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Dengarkan Suara Supri',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.supriOrange.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -722,6 +772,23 @@ class _SupriAssistantPanelState extends State<SupriAssistantPanel>
                 tooltip: 'Lampirkan file atau foto produk',
                 padding: const EdgeInsets.all(6),
                 constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 4),
+              // Mic Logo Button with immediate spoken greeting
+              IconButton(
+                onPressed: _handleMicPressed,
+                icon: Icon(
+                  _isMicActive ? Icons.mic_rounded : Icons.mic_none_rounded,
+                  size: 20,
+                  color: _isMicActive ? AppColors.brandLime : AppColors.supriOrange,
+                ),
+                tooltip: 'Sapa Supri lewat Suara (TTS Cowo Greeting)',
+                padding: const EdgeInsets.all(6),
+                constraints: const BoxConstraints(),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      _isMicActive ? AppColors.cardDark : Colors.transparent,
+                ),
               ),
               const SizedBox(width: 6),
               Expanded(

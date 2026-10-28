@@ -53,3 +53,13 @@ app.*.map.json
 /mobile/.env
 /mobile/.env.local
 /mobile/.env.*.local
+
+# Raw datasets (do not commit raw data)
+data/raw/
+dataset/
+*.zip
+*.sql
+
+# Python & audio cache
+__pycache__/
+backend/storage/app/tts_cache/

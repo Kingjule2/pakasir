@@ -16,6 +16,7 @@ class InventoryItem {
   final DateTime? deletedAt;
   final DateTime? deleteAfter;
   final String? deletedReason;
+  final DateTime? expiryDate;
 
   InventoryItem({
     required this.id,
@@ -33,6 +34,7 @@ class InventoryItem {
     this.deletedAt,
     this.deleteAfter,
     this.deletedReason,
+    this.expiryDate,
   });
 
   int get daysRemaining {
@@ -41,6 +43,20 @@ class InventoryItem {
     return diff < 0 ? 0 : diff;
   }
 
+  bool get isExpired => expiryDate != null && expiryDate!.isBefore(DateTime.now());
+
+  bool get isNearExpiry {
+    if (expiryDate == null) return false;
+    final diff = expiryDate!.difference(DateTime.now()).inDays;
+    return diff >= 0 && diff <= 14;
+  }
+
+  int? get daysUntilExpiry {
+    if (expiryDate == null) return null;
+    return expiryDate!.difference(DateTime.now()).inDays;
+  }
+
+  bool get isLowStock => totalQty <= 20 || stockIn <= 15;
   InventoryItem copyWith({
     String? id,
     String? name,
@@ -57,6 +73,7 @@ class InventoryItem {
     DateTime? deletedAt,
     DateTime? deleteAfter,
     String? deletedReason,
+    DateTime? expiryDate,
     bool clearDeleted = false,
   }) {
     return InventoryItem(
@@ -75,6 +92,7 @@ class InventoryItem {
       deletedAt: clearDeleted ? null : (deletedAt ?? this.deletedAt),
       deleteAfter: clearDeleted ? null : (deleteAfter ?? this.deleteAfter),
       deletedReason: clearDeleted ? null : (deletedReason ?? this.deletedReason),
+      expiryDate: expiryDate ?? this.expiryDate,
     );
   }
 }
